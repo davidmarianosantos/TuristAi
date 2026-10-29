@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { repositorio, type Ensaio, type Repositorio } from "@/data/repositorio";
-import type { Alerta, Municipio, Severidade } from "@/data/tipos";
+import type { Alerta, Idioma, Municipio, SessoesEEntregas, Severidade } from "@/data/tipos";
+import { calcularAlcance, formatarTempo } from "./alcance";
 import { AlertasAtivos } from "./AlertasAtivos";
 import { PublicarAlerta, type PraiaDaRegiao } from "./PublicarAlerta";
 
@@ -10,6 +11,32 @@ type Repo = Repositorio & Ensaio;
 
 // mais grave primeiro, como na tela do turista
 const PESO: Record<Severidade, number> = { perigo: 0, atencao: 1, info: 2 };
+const IDIOMAS: Idioma[] = ["pt", "es", "en"];
+
+function LinhaAlcance({ alerta, dados, agora, municipio }: { alerta: Alerta; dados: SessoesEEntregas; agora: Date; municipio: string }) {
+  const r = calcularAlcance(alerta, dados, agora);
+  const tempo = `Tempo até chegar: ${
+    r.primeiraMs == null ? "—" : `primeira ${formatarTempo(r.primeiraMs)} · mediana ${formatarTempo(r.medianaMs)}`
+  }`;
+  if (r.abertas === 0)
+    return (
+      <p className="text-[14px] text-ink-2">
+        Nenhuma Sessão aberta hoje em {municipio} · {tempo}
+      </p>
+    );
+  const idiomas = IDIOMAS.filter((i) => r.porIdioma[i] > 0).map((i) => `${i.toUpperCase()} ${r.porIdioma[i]}`);
+  return (
+    <div className="text-[14px]">
+      <p>
+        <b>
+          Alcance: {r.alcancadas} de {r.abertas} Sessões abertas hoje ({Math.round((r.alcancadas / r.abertas) * 100)}%)
+        </b>
+        {idiomas.length > 0 && <span className="text-ink-2"> · {idiomas.join(" · ")}</span>}
+      </p>
+      <p className="text-ink-2">{tempo}</p>
+    </div>
+  );
+}
 
 /** Painel regional da gestão: publica Alertas e acompanha o Alcance deles. */
 export function AppGestao() {
@@ -18,6 +45,23 @@ export function AppGestao() {
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [praias, setPraias] = useState<PraiaDaRegiao[]>([]);
   const [alertas, setAlertas] = useState<Alerta[]>([]);
+  const [dados, setDados] = useState<SessoesEEntregas>({ sessoes: [], entregas: [] });
+  const [agora, setAgora] = useState(() => new Date());
+
+  // Sessões e Entregas ao vivo; o relógio anda a cada 30 s para a virada do dia
+  useEffect(() => {
+    if (!repo) return;
+    void repo.sessoesEEntregas().then(setDados);
+    const parar = repo.aoMudarSessoesEEntregas((d) => {
+      setDados(d);
+      setAgora(new Date());
+    });
+    const relogio = setInterval(() => setAgora(new Date()), 30_000);
+    return () => {
+      parar();
+      clearInterval(relogio);
+    };
+  }, [repo]);
 
   useEffect(() => {
     const r = repositorio();
@@ -66,7 +110,19 @@ export function AppGestao() {
         <p className="text-[15px] text-ink-2">Costa do Cacau</p>
       </header>
       <PublicarAlerta praias={praias} aoPublicar={(a) => repo.publicarAlerta(a)} />
-      <AlertasAtivos alertas={alertas} municipios={municipios} aoEncerrar={(id) => void repo.encerrarAlerta(id)} />
+      <AlertasAtivos
+        alertas={alertas}
+        municipios={municipios}
+        aoEncerrar={(id) => void repo.encerrarAlerta(id)}
+        alcance={(a) => (
+          <LinhaAlcance
+            alerta={a}
+            dados={dados}
+            agora={agora}
+            municipio={municipios.find((m) => m.id === a.municipioId)?.nome ?? a.municipioId}
+          />
+        )}
+      />
     </main>
   );
 }
