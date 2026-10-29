@@ -272,7 +272,7 @@ export function FolhaSOS({
                     value={livre}
                     onChange={(e) => setLivre(e.target.value)}
                     placeholder={t("descreva")}
-                    className="h-[54px] min-w-0 flex-1 rounded-full bg-surface px-5 text-[16px] outline-none placeholder:text-ink-2 focus-visible:outline-2 focus-visible:outline-blue"
+                    className="h-[54px] min-w-0 flex-1 rounded-full bg-surface px-5 text-[16px] outline-none transition-shadow placeholder:text-ink-2 focus:bg-card focus:ring-2 focus:ring-line"
                   />
                   <button type="submit" className="toque h-[54px] rounded-full bg-ink px-5 text-[15px] font-bold text-white">
                     {t("enviar")}
@@ -335,7 +335,7 @@ export function FolhaSOS({
           <div className="flex flex-col gap-3">
             {pedido.ficha && (
               <>
-                <EtapasAgente etapas={etapas} pronto modo={pedido.ficha.modo} />
+                <EtapasAgente etapas={etapas} pronto />
                 <p className="text-[16px] font-semibold leading-snug">{orientacao || pedido.ficha.orientacao}</p>
               </>
             )}
@@ -364,7 +364,7 @@ export function FolhaSOS({
           <div className="flex flex-col gap-4">
             {pedido?.ficha && (
               <div className="flex flex-col gap-2">
-                <EtapasAgente etapas={etapas} pronto modo={pedido.ficha.modo} />
+                <EtapasAgente etapas={etapas} pronto />
                 <p className="rounded-[18px] bg-danger-bg px-4 py-3 text-[16px] font-semibold leading-snug text-danger-deep">
                   {orientacao || pedido.ficha.orientacao}
                 </p>

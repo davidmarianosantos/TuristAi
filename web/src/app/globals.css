@@ -189,6 +189,12 @@ button {
   outline: 3px solid var(--blue-bright);
   outline-offset: 2px;
 }
+/* campos de texto: o cursor já mostra onde se digita; o foco vem do anel suave de cada campo,
+   não do contorno azul grosso, que ficava torto nas caixas arredondadas */
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
 
 .sem-barra {
   scrollbar-width: none;

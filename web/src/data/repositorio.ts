@@ -17,6 +17,8 @@ export interface Repositorio {
   municipio(id: string): Promise<Municipio>;
   /** os municípios da Costa do Cacau */
   municipios(): Promise<Municipio[]>;
+  /** ids dos municípios que já têm conteúdo (praias, atrativos ou lugares) */
+  municipiosComDados(): Promise<string[]>;
   /** pontos turísticos e passeios do município, na ordem de destaque */
   atrativos(municipioId: string): Promise<Atrativo[]>;
   alertasAtivos(municipioId: string): Promise<Alerta[]>;
@@ -118,6 +120,10 @@ export function criarRepositorioMock(): Repositorio & Ensaio {
   return {
     async municipio(id) {
       return MUNICIPIOS.find((m) => m.id === id) ?? MUNICIPIOS.find((m) => m.id === MUNICIPIO_PADRAO)!;
+    },
+    async municipiosComDados() {
+      const ids = [...LOCAIS, ...ATRATIVOS, ...ESTABELECIMENTOS].map((x) => x.municipioId);
+      return MUNICIPIOS.map((m) => m.id).filter((id) => ids.includes(id));
     },
     async municipios() {
       return [...MUNICIPIOS];

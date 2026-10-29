@@ -65,9 +65,10 @@ function FichaAgente({ ficha, origem }: { ficha: FichaSOS; origem?: string }) {
     ["Localização", ficha.local ? `${ficha.local.lat.toFixed(4)}, ${ficha.local.lng.toFixed(4)}` : "Não enviada"],
     ["Hospedagem", ficha.hotel ?? origem ?? "Sem hospedagem"],
     ["Orientação dada", `“${ficha.orientacao}”`],
+    ["Sinais no texto", ficha.sinais?.length ? ficha.sinais.join(" · ") : "Nenhum sinal claro"],
   ];
   return (
-    <Cartao titulo={ficha.modo === "ia" ? "Ficha do agente de IA" : "Ficha do agente (regras de reserva, sem IA)"}>
+    <Cartao titulo="Ficha da triagem automática">
       <dl className="grid grid-cols-[112px_1fr] gap-x-3 gap-y-2 text-[14px] leading-snug">
         {linhas.map(([rotulo, valor]) => (
           <div key={rotulo} className="contents">

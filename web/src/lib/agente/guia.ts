@@ -1,311 +1,350 @@
-// Agente guia turístico: conversa em PT/ES/EN e responde só com o que as ferramentas
-// trazem dos dados mocados (alertas, praias, lugares com Selo, passeios).
-// Sem chave ou com a API fora do ar, cai no guia simulado, que usa os mesmos dados.
-import { isStepCount, streamText, tool, type LanguageModel, type ModelMessage } from "ai";
-import { z } from "zod";
+// Agente guia turístico: entende a pergunta em PT/ES/EN por regras, consulta os dados mocados
+// (alertas, praias, lugares com Selo, passeios) e responde no idioma do turista, com etapas
+// visíveis e streaming. Nunca inventa: só fala do que está nos dados.
 import { TEMPO_DEMO } from "@/data/seed";
-import type { Idioma, PraiaHoje } from "@/data/tipos";
+import type { Atrativo, Idioma, PraiaHoje, Traduzido } from "@/data/tipos";
 import { classificar, normalizar } from "@/lib/assistente";
 import { formatarDistancia } from "@/lib/mapa";
-import { CATEGORIA_PT } from "./categorias";
 import * as dados from "./dados";
-import { espera, ETAPA, etapaAlertas, etapaLugares, etapaPraias, NOME_IDIOMA, pedacos, SITUACAO, t } from "./falas";
-import { modeloDoAgente, TEMPO_MAXIMO_MS } from "./provedor";
+import { espera, ETAPA, etapaAlertas, etapaLugares, etapaPraias, pedacos, SITUACAO, t } from "./falas";
+import { triar } from "./sos";
 import type { EventoAgente, PedidoGuia } from "./tipos";
 
-const GRUPOS = Object.keys(dados.GRUPOS) as [dados.Grupo, ...dados.Grupo[]];
+type Tema =
+  | "saudacao" | "agradecimento" | "ajuda" | "alertas" | "praias" | "atrativo" | "passeios" | "comer"
+  | "hospedagem" | "transporte" | "compras" | "noite" | "clima" | "selo" | "preco";
 
-function descreverPraia(p: PraiaHoje, idioma: Idioma) {
-  return { id: p.id, nome: p.nome, situacao: SITUACAO[p.condicao.situacao][idioma], bandeira: p.condicao.bandeira, detalhe: p.condicao.detalhe[idioma] };
+const NOME_TEMA: Record<Tema, Traduzido> = {
+  saudacao: t("saudação", "saludo", "greeting"),
+  agradecimento: t("agradecimento", "agradecimiento", "thanks"),
+  ajuda: t("pedido de ajuda", "pedido de ayuda", "help request"),
+  alertas: t("alertas", "alertas", "alerts"),
+  praias: t("praias", "playas", "beaches"),
+  atrativo: t("passeio", "paseo", "tour"),
+  passeios: t("o que fazer", "qué hacer", "things to do"),
+  comer: t("onde comer", "dónde comer", "where to eat"),
+  hospedagem: t("hospedagem", "alojamiento", "places to stay"),
+  transporte: t("transporte", "transporte", "transport"),
+  compras: t("compras", "compras", "shopping"),
+  noite: t("vida noturna", "vida nocturna", "nightlife"),
+  clima: t("clima e maré", "clima y marea", "weather and tide"),
+  selo: t("Selo TuristAí", "Sello TuristAí", "TuristAí Seal"),
+  preco: t("preços", "precios", "prices"),
+};
+
+// começos de palavra (ou expressões) que indicam cada tema, já sem acento
+const PISTAS: [Tema, string[]][] = [
+  ["agradecimento", ["obrigad", "brigad", "valeu", "gracias", "thanks", "thank you", "thx", "muito bom", "perfeito", "perfecto", "genial"]],
+  ["alertas", ["alerta", "aviso", "alert", "warning", "interdi", "bandeira vermelha", "bandera roja", "red flag", "perigo hoje", "peligro hoy"]],
+  ["praias", ["praia", "playa", "beach", "nadar", "swim", "banho", "bano", "surf", "onda", "ola ", "waves", "mergulh", "bucear", "snorkel"]],
+  ["passeios", ["passeio", "paseo", "tour", "trilha", "sendero", "trail", "o que fazer", "que hacer", "what to do", "things to do", "visitar", "visit", "conhecer", "conocer", "atrac", "atrativ", "excurs", "roteiro", "itinerar", "aventura", "adventure", "natureza", "naturaleza", "nature", "cultura", "culture", "historia", "history", "turistico"]],
+  ["comer", ["jantar", "cena", "cenar", "dinner", "almoc", "almuerzo", "almorzar", "lunch", "cafe da manha", "desayuno", "breakfast", "pizza", "massa", "pasta", "frutos do mar", "mariscos", "seafood", "peixe", "pescado", "fish", "moqueca", "acaraje", "lanche", "snack", "comer", "comida", "food", "eat", "restaurante", "restaurant", "fome", "hambre", "hungry"]],
+  ["hospedagem", ["hotel", "pousada", "posada", "hospedagem", "hospedar", "alojamiento", "dormir", "stay", "inn ", "hostel", "quarto", "habitacion", "room"]],
+  ["transporte", ["taxi", "uber", "transfer", "aeroporto", "aeropuerto", "airport", "onibus", "autobus", "bus ", "carro", "car ", "van ", "rodoviaria", "terminal", "como chego", "como llego", "how do i get"]],
+  ["compras", ["comprar", "compras", "loja", "tienda", "shop", "souvenir", "lembranc", "recuerdo", "chocolate", "presente", "regalo", "gift"]],
+  ["noite", ["bar ", "bares", "balada", "festa", "fiesta", "party", "noite", "noche", "night", "musica", "music", "beber", "drink", "cerveja", "cerveza", "beer", "forro", "show"]],
+  ["clima", ["mare", "marea", "tide", "chuva", "chover", "lluvia", "llover", "rain", "clima", "tempo hoje", "weather", "sol ", "sun ", "calor", "frio", "temperatura"]],
+  ["selo", ["selo", "sello", "seal", "confiavel", "confiable", "trust", "verificad", "verified", "cadastur", "seguro confiar"]],
+  ["preco", ["preco", "precio", "price", "quanto custa", "cuanto cuesta", "how much", "caro", "barato", "cheap", "expensive", "valor"]],
+];
+const SAUDACOES = ["oi", "ola", "hola", "hi", "hello", "hey", "bom dia", "boa tarde", "boa noite", "buenos dias", "buenas", "buenas tardes", "buenas noches", "good morning", "good afternoon", "good evening"];
+
+const tem = (m: string, termos: string[]) => termos.some((x) => ` ${m} `.includes(` ${x}`));
+
+function praiasCitadas(m: string, praias: PraiaHoje[]) {
+  return praias.filter((x) => ` ${m} `.includes(` ${normalizar(x.nome).replace(/^praia (do |dos |da )?/, "")}`));
 }
 
-function praiasPedidas(p: PedidoGuia, nome?: string) {
+type Leitura = { temas: Tema[]; praias: PraiaHoje[]; atrativos: Atrativo[]; m: string };
+
+function entender(pergunta: string, p: PedidoGuia): Leitura {
+  const m = normalizar(pergunta);
+  const praias = praiasCitadas(m, dados.praiasHoje(p.municipioId, p.alertas));
+  const atrativos = dados.atrativosCitados(m, p.municipioId);
+  const temas = new Set<Tema>();
+  if (praias.length || classificar(pergunta) === "praia_segura") temas.add("praias");
+  if (atrativos.length) temas.add("atrativo");
+  for (const [tema, termos] of PISTAS) if (tem(m, termos)) temas.add(tema);
+  const intencao = classificar(pergunta);
+  if (intencao === "comer") temas.add("comer");
+  if (intencao === "transporte") temas.add("transporte");
+  if (intencao === "mare_clima") temas.add("clima");
+  // um passeio citado pelo nome já responde "o que fazer"; "cacau" de loja vira compras
+  if (temas.has("atrativo")) temas.delete("passeios");
+  if (temas.has("compras") && atrativos.every((a) => a.id === "fazenda-cacau") && !tem(m, ["fazenda", "hacienda", "farm", "visita"])) {
+    temas.delete("atrativo");
+  }
+  if (!temas.size && m.split(" ").length <= 5 && tem(m, SAUDACOES)) temas.add("saudacao");
+  return { temas: [...temas].filter((x) => x !== "agradecimento" || temas.size === 1).slice(0, 3), praias, atrativos, m };
+}
+
+// ---------- respostas ----------
+
+type Bloco = { etapas: string[]; texto: string; lugares?: string[]; praias?: string[] };
+
+function referencia(p: PedidoGuia) {
+  const hotel = dados.estabelecimento(p.origemId);
+  return hotel ? t(`da ${hotel.nome}`, `de ${hotel.nome}`, `from ${hotel.nome}`)[p.idioma] : t("do centro", "del centro", "from downtown")[p.idioma];
+}
+
+function responderLugares(p: PedidoGuia, grupo: dados.Grupo, m: string, vazio: Traduzido, abertura: Traduzido): Bloco {
+  const i = p.idioma;
+  let lista = dados.lugaresComSelo(p.municipioId, grupo, p.origemId);
+  // o que a pessoa pediu primeiro: "pizza" põe a cantina na frente, "moqueca" o restaurante baiano
+  const pedido = m.split(" ").filter((w) => w.length > 3);
+  const pontua = (x: (typeof lista)[number]) =>
+    pedido.filter((w) => normalizar(`${x.e.nome} ${x.e.descricao.pt} ${x.e.descricao.es} ${x.e.descricao.en} ${x.e.local}`).includes(w.slice(0, 5))).length;
+  lista = [...lista].sort((a, b) => pontua(b) - pontua(a) || a.km - b.km).slice(0, 3);
+  const etapas = [ETAPA.lugares[i], etapaLugares(lista.length, i)];
+  if (!lista.length) return { etapas, texto: vazio[i] };
+  const linhas = lista.map(({ e, km }) => `• ${e.nome}: ${e.descricao[i].charAt(0).toLowerCase()}${e.descricao[i].slice(1)} (${e.local}, ${formatarDistancia(km, i)})`);
+  return { etapas, texto: `${abertura[i].replace("{ref}", referencia(p))}\n${linhas.join("\n")}`, lugares: lista.map((x) => x.e.id) };
+}
+
+function responderPraias(p: PedidoGuia, citadas: PraiaHoje[]): Bloco {
+  const i = p.idioma;
   const todas = dados.praiasHoje(p.municipioId, p.alertas);
-  if (!nome) return todas;
-  const alvo = normalizar(nome).replace(/^(praia|playa|beach) (da |do |de )?/, "");
-  const achadas = todas.filter((x) => normalizar(x.nome).includes(alvo) || alvo.includes(normalizar(x.nome)));
-  return achadas.length ? achadas : todas;
+  const lista = citadas.length ? citadas : todas;
+  const aptas = lista.filter((x) => x.condicao.situacao === "propria").length;
+  const etapas = [ETAPA.praias[i], etapaPraias(aptas, lista.length, i)];
+  const linhas = lista.map((x) => `• ${x.nome}: ${SITUACAO[x.condicao.situacao][i]} (${x.condicao.detalhe[i]})`);
+  const ruins = citadas.filter((x) => x.condicao.situacao === "impropria");
+  const boas = todas.filter((x) => x.condicao.situacao === "propria" && !citadas.includes(x)).map((x) => x.nome);
+  let extra = "";
+  if (ruins.length)
+    extra = t(
+      `Hoje não entre no mar na ${ruins.map((x) => x.nome).join(", ")}.${boas.length ? ` Boas opções: ${boas.join(", ")}.` : ""}`,
+      `Hoy no entres al mar en ${ruins.map((x) => x.nome).join(", ")}.${boas.length ? ` Buenas opciones: ${boas.join(", ")}.` : ""}`,
+      `Don't go into the sea at ${ruins.map((x) => x.nome).join(", ")} today.${boas.length ? ` Good options: ${boas.join(", ")}.` : ""}`,
+    )[i];
+  else if (lista.some((x) => x.condicao.situacao === "precaucao"))
+    extra = t("Onde está “com cuidado”, nade só perto do salva-vidas.", "Donde dice “con precaución”, nada solo cerca del socorrista.", "Where it says “use caution”, swim only near a lifeguard.")[i];
+  // pergunta sobre uma praia só: responde direto, antes da lista
+  const uma = citadas.length === 1 ? citadas[0] : null;
+  const direto = uma
+    ? {
+        propria: t(`Sim! A ${uma.nome} está própria para banho hoje.`, `¡Sí! ${uma.nome} está apta para el baño hoy.`, `Yes! ${uma.nome} is safe for swimming today.`),
+        precaucao: t(`Dá para ir à ${uma.nome}, mas com cuidado hoje.`, `Puedes ir a ${uma.nome}, pero con precaución hoy.`, `You can go to ${uma.nome}, but with caution today.`),
+        impropria: t(`Hoje não: a ${uma.nome} está imprópria.`, `Hoy no: ${uma.nome} no está apta.`, `Not today: ${uma.nome} is unsafe.`),
+        sem_dados: t(`Ainda não tenho dados de hoje da ${uma.nome}.`, `Todavía no tengo datos de hoy de ${uma.nome}.`, `I don't have today's data for ${uma.nome} yet.`),
+      }[uma.condicao.situacao][i]
+    : "";
+  return { etapas, texto: [direto, linhas.join("\n"), extra].filter(Boolean).join("\n"), praias: lista.map((x) => x.id) };
 }
 
-function lugaresPedidos(p: PedidoGuia, grupo?: dados.Grupo) {
-  const de = dados.estabelecimento(p.origemId) ?? dados.municipio(p.municipioId);
-  return dados.lugaresComSelo(p.municipioId, grupo, p.origemId).slice(0, 4).map(({ e, km }) => ({
-    id: e.id,
-    nome: e.nome,
-    categoria: CATEGORIA_PT[e.categoria],
-    onde: e.local,
-    descricao: e.descricao[p.idioma],
-    nota: e.avaliacao.nota,
-    avaliacoes: e.avaliacao.total,
-    cadastur: e.cadastur,
-    distancia: formatarDistancia(km, p.idioma),
-    referenciaDistancia: de.nome,
-  }));
-}
-
-function ferramentas(p: PedidoGuia) {
+function responderAlertas(p: PedidoGuia): Bloco {
+  const i = p.idioma;
+  const ativos = dados.alertasAtivos(p.municipioId, p.alertas);
   return {
-    consultarAlertas: tool({
-      description: "Alertas oficiais ativos hoje no município (bandeira vermelha, mar agitado, interdições).",
-      inputSchema: z.object({}),
-      execute: async () => ({
-        alertas: dados.alertasAtivos(p.municipioId, p.alertas).map((a) => ({
-          titulo: a.titulo[p.idioma],
-          texto: a.texto[p.idioma],
-          severidade: a.severidade,
-          origem: a.origem,
-        })),
-      }),
-    }),
-    consultarPraias: tool({
-      description: "Situação de hoje das praias do município (própria, com cuidado ou imprópria, e a bandeira). Já considera os alertas ativos.",
-      inputSchema: z.object({ praia: z.string().optional().describe("nome da praia, se o turista perguntou de uma específica") }),
-      execute: async ({ praia }) => {
-        const lista = praiasPedidas(p, praia);
-        return { praias: lista.map((x) => descreverPraia(x, p.idioma)), ids: lista.map((x) => x.id) };
-      },
-    }),
-    buscarLugares: tool({
-      description:
-        "Estabelecimentos com o Selo TuristAí (cadastro verificado), do mais perto ao mais longe. Os únicos lugares que você pode recomendar.",
-      inputSchema: z.object({
-        grupo: z.enum(GRUPOS).optional().describe("comer, hospedagem, passeios (guias e agências), transporte, compras ou noite"),
-      }),
-      execute: async ({ grupo }) => {
-        const lugares = lugaresPedidos(p, grupo);
-        return { lugares, ids: lugares.map((l) => l.id) };
-      },
-    }),
-    consultarAtrativos: tool({
-      description: "Pontos turísticos e passeios do município (trilhas, mirantes, passeios de barco, cultura).",
-      inputSchema: z.object({}),
-      execute: async () => ({
-        atrativos: dados.atrativos(p.municipioId).map((a) => ({
-          nome: a.nome,
-          tipo: a.tipo,
-          resumo: a.resumo[p.idioma],
-          duracao: a.duracao?.[p.idioma],
-          dicas: a.dicas.map((d) => d[p.idioma]),
-        })),
-      }),
-    }),
-    pedirSOS: tool({
-      description: "Use quando o turista descrever uma emergência (perigo, roubo, ferimento, afogamento, alguém perdido). A tela mostra o botão de SOS.",
-      inputSchema: z.object({ motivo: z.string().describe("o que aconteceu, em português") }),
-      execute: async () => ({ ok: true, instrucao: "Diga ao turista para tocar em SOS agora ou ligar 190 (polícia), 192 (SAMU) ou 193 (bombeiros)." }),
-    }),
+    etapas: [ETAPA.alertas[i], etapaAlertas(ativos.length, i)],
+    texto: ativos.length
+      ? `${t("Alertas oficiais de hoje:", "Alertas oficiales de hoy:", "Today's official alerts:")[i]}\n${ativos.map((a) => `• ${a.titulo[i]}: ${a.texto[i]} (${a.origem})`).join("\n")}`
+      : t(
+          "Hoje não há alertas oficiais ativos. Mesmo assim, respeite as bandeiras dos salva-vidas.",
+          "Hoy no hay alertas oficiales activos. Aun así, respeta las banderas de los socorristas.",
+          "There are no active official alerts today. Still, follow the lifeguards' flags.",
+        )[i],
   };
 }
 
-function instrucoes(p: PedidoGuia) {
-  const cidade = dados.municipio(p.municipioId).nome;
-  const hotel = dados.estabelecimento(p.origemId)?.nome;
-  const hoje = new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "America/Bahia" }).format(new Date());
-  return `Você é o assistente do TuristAí, guia turístico da Costa do Cacau (Bahia), conversando pelo celular.
-Hoje é ${hoje}. O turista está em ${cidade}${hotel ? `, hospedado na ${hotel}` : ""}. Clima de hoje: ${TEMPO_DEMO.temperatura}°, ensolarado; maré alta às ${TEMPO_DEMO.mareAlta}.
-
-Responda SEMPRE em ${NOME_IDIOMA[p.idioma]}, que é o idioma do turista.
-
-Regras:
-- Para alertas, praias, lugares e passeios, consulte as ferramentas antes de responder. Nunca invente lugares, dados, preços, horários ou telefones.
-- Só recomende estabelecimentos devolvidos por buscarLugares: todos têm o Selo TuristAí. Se nenhum servir, diga que ainda não há lugar com Selo para isso.
-- Não fale de preços.
-- Se o turista descrever uma emergência, chame pedirSOS e diga para tocar em SOS ou ligar 190 (polícia), 192 (SAMU) ou 193 (bombeiros).
-- Assuntos fora de turismo na região: responda em uma frase que você ajuda com praias, alertas, onde comer, passeios e transporte.
-- Respostas curtas, tom de conversa: no máximo 4 frases, ou uma lista curta com "•". Sem markdown (nada de **, # ou tabelas).
-- Os cartões dos lugares e das praias aparecem sozinhos abaixo da sua resposta: cite os nomes, sem repetir todos os detalhes.`;
+function guiasComSelo(p: PedidoGuia) {
+  return dados.lugaresComSelo(p.municipioId, "passeios", p.origemId).slice(0, 1).map((x) => x.e);
 }
 
-async function* guiaComModelo(modelo: LanguageModel, p: PedidoGuia): AsyncGenerator<EventoAgente> {
-  const mensagens: ModelMessage[] = p.mensagens.map((m) => ({ role: m.papel === "turista" ? "user" : "assistant", content: m.texto }));
-  const r = streamText({
-    model: modelo,
-    system: instrucoes(p),
-    messages: mensagens,
-    tools: ferramentas(p),
-    stopWhen: isStepCount(4),
-    temperature: 0.3,
-    abortSignal: AbortSignal.timeout(TEMPO_MAXIMO_MS),
+function responderAtrativos(p: PedidoGuia, citados: Atrativo[]): Bloco {
+  const i = p.idioma;
+  const de = dados.estabelecimento(p.origemId) ?? dados.municipio(p.municipioId);
+  const linhas = citados.slice(0, 2).map((a) => {
+    const dist = a.lat != null && a.lng != null ? ` ${t("Fica a", "Está a", "It's")[i]} ${formatarDistancia(dados.distancia(de, a), i)}${i === "en" ? " away" : ""}.` : "";
+    const dur = a.duracao ? ` (${a.duracao[i]})` : "";
+    return `${a.nomes[i]}${dur}: ${a.descricao[i]}${dist}\n${t("Antes de ir:", "Antes de ir:", "Before you go:")[i]} ${a.dicas.map((d) => d[i].toLowerCase()).join("; ")}.`;
   });
-  for await (const parte of r.fullStream) {
-    switch (parte.type) {
-      case "text-delta":
-        if (parte.text) yield { tipo: "texto", delta: parte.text };
-        break;
-      case "tool-call":
-        if (parte.toolName === "consultarAlertas") yield { tipo: "etapa", texto: ETAPA.alertas[p.idioma] };
-        if (parte.toolName === "consultarPraias") yield { tipo: "etapa", texto: ETAPA.praias[p.idioma] };
-        if (parte.toolName === "buscarLugares") yield { tipo: "etapa", texto: ETAPA.lugares[p.idioma] };
-        if (parte.toolName === "consultarAtrativos") yield { tipo: "etapa", texto: ETAPA.atrativos[p.idioma] };
-        if (parte.toolName === "pedirSOS") {
-          yield { tipo: "etapa", texto: ETAPA.sos[p.idioma] };
-          yield { tipo: "sos" };
-        }
-        break;
-      case "tool-result": {
-        const saida = parte.output as { ids?: string[]; alertas?: unknown[]; praias?: { situacao: string }[] };
-        if (parte.toolName === "consultarAlertas") yield { tipo: "etapa", texto: etapaAlertas(saida.alertas?.length ?? 0, p.idioma) };
-        if (parte.toolName === "consultarPraias" && saida.ids) {
-          const aptas = saida.praias?.filter((x) => x.situacao === SITUACAO.propria[p.idioma]).length ?? 0;
-          yield { tipo: "etapa", texto: etapaPraias(aptas, saida.ids.length, p.idioma) };
-          yield { tipo: "praias", ids: saida.ids };
-        }
-        if (parte.toolName === "buscarLugares" && saida.ids) {
-          yield { tipo: "etapa", texto: etapaLugares(saida.ids.length, p.idioma) };
-          yield { tipo: "lugares", ids: saida.ids };
-        }
-        break;
-      }
-      case "error":
-        throw parte.error;
+  const precisaGuia = citados.some((a) => ["trilha", "passeio", "aventura", "cacau"].includes(a.tipo));
+  const guia = precisaGuia ? guiasComSelo(p)[0] : undefined;
+  const dica = guia
+    ? t(`Para ir com guia, a ${guia.nome} é recomendada pelo TuristAí.`, `Para ir con guía, ${guia.nome} está recomendada por TuristAí.`, `For a guide, ${guia.nome} is recommended by TuristAí.`)[i]
+    : "";
+  return { etapas: [ETAPA.atrativos[i]], texto: [...linhas, dica].filter(Boolean).join("\n\n"), lugares: guia ? [guia.id] : undefined };
+}
+
+function responderPasseios(p: PedidoGuia, m: string): Bloco {
+  const i = p.idioma;
+  const todos = dados.atrativos(p.municipioId);
+  const filtro = tem(m, ["trilha", "sendero", "trail", "caminhada", "caminata", "hike"])
+    ? ["trilha"]
+    : tem(m, ["cultura", "culture", "historia", "history", "museu", "museo", "museum", "igreja", "iglesia"])
+      ? ["cultura"]
+      : tem(m, ["aventura", "adventure", "radical", "rafting"])
+        ? ["aventura", "trilha"]
+        : null;
+  const lista = (filtro ? todos.filter((a) => filtro.includes(a.tipo)) : todos).slice(0, 4);
+  const usados = lista.length ? lista : todos.slice(0, 4);
+  if (!usados.length) return { etapas: [ETAPA.atrativos[i]], texto: t("Ainda não tenho passeios cadastrados aqui.", "Todavía no tengo paseos registrados aquí.", "I don't have tours listed here yet.")[i] };
+  const guia = guiasComSelo(p)[0];
+  return {
+    etapas: [ETAPA.atrativos[i], t(`${usados.length} passeios na base`, `${usados.length} paseos en la base`, `${usados.length} tours found`)[i]],
+    texto: [
+      t("Boas pedidas por aqui:", "Buenas opciones por aquí:", "Good picks around here:")[i],
+      ...usados.map((a) => `• ${a.nomes[i]}: ${a.resumo[i]}${a.duracao ? ` (${a.duracao[i]})` : ""}`),
+      guia ? t(`Para trilhas e passeios com guia, a ${guia.nome} é recomendada pelo TuristAí.`, `Para senderos y paseos con guía, ${guia.nome} está recomendada por TuristAí.`, `For guided trails and tours, ${guia.nome} is recommended by TuristAí.`)[i] : "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    lugares: guia ? [guia.id] : undefined,
+  };
+}
+
+function responderClima(p: PedidoGuia): Bloco {
+  const i = p.idioma;
+  const praias = dados.praiasHoje(p.municipioId, p.alertas);
+  const aptas = praias.filter((x) => x.condicao.situacao === "propria").length;
+  return {
+    etapas: [t("consultando clima e maré…", "consultando clima y marea…", "checking weather and tide…")[i]],
+    texto: t(
+      `Hoje faz ${TEMPO_DEMO.temperatura}° com sol. A maré alta é às ${TEMPO_DEMO.mareAlta}; a baixa, cerca de 6 horas depois, é a melhor hora para piscinas naturais. ${aptas} de ${praias.length} praias estão próprias.`,
+      `Hoy hace ${TEMPO_DEMO.temperatura}° y sol. La marea alta es a las ${TEMPO_DEMO.mareAlta}; la baja, unas 6 horas después, es la mejor hora para las piscinas naturales. ${aptas} de ${praias.length} playas están aptas.`,
+      `Today it's ${TEMPO_DEMO.temperatura}° and sunny. High tide is at ${TEMPO_DEMO.mareAlta}; low tide, about 6 hours later, is best for natural pools. ${aptas} of ${praias.length} beaches are safe.`,
+    )[i],
+  };
+}
+
+function responderAjuda(p: PedidoGuia, pergunta: string): Bloco | null {
+  const ficha = triar({ texto: pergunta, idioma: p.idioma });
+  if (ficha.urgencia === "urgente" || !ficha.passos.length) return null;
+  return { etapas: [ETAPA.triando[p.idioma]], texto: `${ficha.orientacao}\n${ficha.passos.map((x, n) => `${n + 1}. ${x}`).join("\n")}` };
+}
+
+const TEXTOS = {
+  saudacao: (p: PedidoGuia) => {
+    const hotel = dados.estabelecimento(p.origemId)?.nome;
+    return t(
+      `Olá! Sou o Cacauzito, o assistente do TuristAí${hotel ? `, aqui com você pela ${hotel}` : ""}. Posso dizer como estão as praias hoje, avisar de alertas, indicar onde comer entre os recomendados e sugerir passeios. O que você quer saber?`,
+      `¡Hola! Soy Cacauzito, el asistente de TuristAí${hotel ? `, contigo desde ${hotel}` : ""}. Te cuento cómo están las playas hoy, te aviso de alertas, te indico dónde comer entre los recomendados y te sugiero paseos. ¿Qué quieres saber?`,
+      `Hi! I'm Cacauzito, the TuristAí assistant${hotel ? `, here with you from ${hotel}` : ""}. I can tell you how the beaches are today, flag alerts, suggest recommended places to eat and things to do. What would you like to know?`,
+    )[p.idioma];
+  },
+  agradecimento: t("De nada! Se precisar de mais alguma coisa, é só perguntar. Aproveite a Costa do Cacau!", "¡De nada! Si necesitas algo más, solo pregunta. ¡Disfruta la Costa do Cacau!", "You're welcome! Ask me anything else. Enjoy the Cocoa Coast!"),
+  selo: t(
+    "O Selo TuristAí mostra que o lugar tem cadastro conferido e boas avaliações de turistas. Hospedagens, agências, guias e transporte turístico também têm o Cadastur, exigido por lei. Por isso eu só recomendo lugares com o Selo.",
+    "El Sello TuristAí indica que el lugar tiene registro verificado y buenas reseñas de turistas. Alojamientos, agencias, guías y transporte turístico también tienen Cadastur, obligatorio por ley. Por eso solo recomiendo lugares con Sello.",
+    "The TuristAí Seal means the place has a verified registration and good reviews from tourists. Places to stay, agencies, guides and tourist transport also hold Cadastur, required by law. That's why I only recommend places with the Seal.",
+  ),
+  preco: t(
+    "Os preços mudam de lugar para lugar e eu prefiro não chutar. Pergunte direto no estabelecimento; os que eu indico são recomendados pelo TuristAí.",
+    "Los precios cambian de un lugar a otro y prefiero no adivinar. Pregunta directamente en el lugar; los que te indico están recomendados por TuristAí.",
+    "Prices vary from place to place and I'd rather not guess. Ask the place directly; the ones I suggest are recommended by TuristAí.",
+  ),
+  naoEntendi: t(
+    "Não entendi bem. Posso ajudar com:\n• praias de hoje\n• alertas\n• onde comer\n• passeios\n• transporte\nExemplo: “a Concha está boa hoje?”",
+    "No te entendí bien. Puedo ayudarte con:\n• playas de hoy\n• alertas\n• dónde comer\n• paseos\n• transporte\nEjemplo: “¿la Concha está bien hoy?”",
+    "I didn't quite get that. I can help with:\n• today's beaches\n• alerts\n• where to eat\n• things to do\n• transport\nFor example: “is Concha OK today?”",
+  ),
+  emergencia: t(
+    "Isso parece uma emergência. Toque em SOS para avisar a Central agora, ou ligue 190 (polícia), 192 (SAMU) ou 193 (bombeiros).",
+    "Esto parece una emergencia. Toca SOS para avisar a la Central ahora, o llama al 190 (policía), 192 (ambulancia) o 193 (bomberos).",
+    "This sounds like an emergency. Tap SOS to alert the Central now, or call 190 (police), 192 (ambulance) or 193 (fire and rescue).",
+  ),
+};
+
+function responderTema(tema: Tema, l: Leitura, p: PedidoGuia, pergunta: string): Bloco {
+  const i = p.idioma;
+  switch (tema) {
+    case "saudacao":
+      return { etapas: [], texto: TEXTOS.saudacao(p) };
+    case "agradecimento":
+      return { etapas: [], texto: TEXTOS.agradecimento[i] };
+    case "selo":
+      return { etapas: [], texto: TEXTOS.selo[i] };
+    case "preco":
+      return { etapas: [], texto: TEXTOS.preco[i] };
+    case "ajuda":
+      return responderAjuda(p, pergunta) ?? { etapas: [], texto: TEXTOS.naoEntendi[i] };
+    case "alertas":
+      return responderAlertas(p);
+    case "praias":
+      return responderPraias(p, l.praias);
+    case "atrativo":
+      return responderAtrativos(p, l.atrativos);
+    case "passeios":
+      return responderPasseios(p, l.m);
+    case "clima":
+      return responderClima(p);
+    case "comer":
+      return responderLugares(p, "comer", l.m,
+        t("Ainda não temos recomendação para comer aqui.", "Todavía no tenemos recomendaciones para comer aquí.", "We don't have a recommended place to eat here yet."),
+        t("Recomendados pelo TuristAí, com a distância {ref}:", "Recomendados por TuristAí, con la distancia {ref}:", "Recommended by TuristAí, distance {ref}:"));
+    case "hospedagem":
+      return responderLugares(p, "hospedagem", l.m,
+        t("Ainda não temos outra hospedagem recomendada por aqui.", "Todavía no tenemos otro alojamiento recomendado por aquí.", "We don't have another recommended place to stay here yet."),
+        t("Hospedagens recomendadas, a partir {ref}:", "Alojamientos recomendados, desde {ref}:", "Recommended places to stay, {ref}:"));
+    case "transporte": {
+      const b = responderLugares(p, "transporte", l.m,
+        t("Ainda não temos transporte recomendado aqui; peça um táxi na recepção.", "Todavía no tenemos transporte recomendado aquí; pide un taxi en la recepción.", "We don't have recommended transport here yet; ask the front desk for a taxi."),
+        t("Transporte recomendado, com Cadastur e motorista credenciado:", "Transporte recomendado, con Cadastur y conductor acreditado:", "Recommended transport, with Cadastur and a licensed driver:"));
+      if (tem(l.m, ["aeroporto", "aeropuerto", "airport"]) && b.lugares?.length)
+        b.texto += `\n${t("Para o aeroporto de Ilhéus, combine o horário com antecedência: a viagem leva cerca de 1h10.", "Para el aeropuerto de Ilhéus, reserva el horario con antelación: el viaje dura cerca de 1h10.", "For Ilhéus airport, book ahead: the ride takes about 1h10.")[i]}`;
+      return b;
+    }
+    case "compras":
+      return responderLugares(p, "compras", l.m,
+        t("Ainda não temos loja recomendada aqui.", "Todavía no tenemos tiendas recomendadas aquí.", "We don't have a recommended shop here yet."),
+        t("Lojas recomendadas {ref}:", "Tiendas recomendadas {ref}:", "Recommended shops {ref}:"));
+    case "noite": {
+      const b = responderLugares(p, "noite", l.m,
+        t("Ainda não temos bar recomendado por aqui, então prefiro não indicar.", "Todavía no tenemos bares recomendados por aquí, así que prefiero no indicar ninguno.", "We don't have a recommended bar here yet, so I'd rather not suggest one."),
+        t("Vida noturna recomendada {ref}:", "Vida nocturna recomendada {ref}:", "Recommended nightlife {ref}:"));
+      const por = dados.atrativos(p.municipioId).find((a) => a.tipo === "mirante");
+      if (!b.lugares?.length && por) b.texto += ` ${t(`Para o fim de tarde, o programa mais famoso é o ${por.nomes.pt}.`, `Para el atardecer, el plan más famoso es el ${por.nomes.es}.`, `For the late afternoon, the classic plan is ${por.nomes.en}.`)[i]}`;
+      return b;
     }
   }
-}
-
-// ---------- reserva: mesmas fontes de dados, frases prontas ----------
-
-const PALAVRAS_ALERTA = ["alerta", "alertas", "aviso", "avisos", "alert", "alerts", "warning", "warnings", "perigo hoje"];
-const PALAVRAS_PASSEIO = ["passeio", "passeios", "paseo", "paseos", "tour", "tours", "trilha", "trilhas", "sendero", "trail", "o que fazer", "que hacer", "things to do", "atrativo", "visitar", "visit"];
-const PALAVRAS_HOSPEDAGEM = ["hotel", "pousada", "posada", "hospedagem", "alojamiento", "dormir", "stay", "inn", "hostel"];
-
-function contem(m: string, palavras: string[]) {
-  const p = ` ${m} `;
-  return palavras.some((w) => p.includes(` ${w} `));
 }
 
 async function* escrever(texto: string): AsyncGenerator<EventoAgente> {
   for (const pedaco of pedacos(texto)) {
     yield { tipo: "texto", delta: pedaco };
-    await espera(35);
+    await espera(28);
   }
 }
 
-async function* guiaSimulado(p: PedidoGuia): AsyncGenerator<EventoAgente> {
-  const pergunta = [...p.mensagens].reverse().find((m) => m.papel === "turista")?.texto ?? "";
-  const m = normalizar(pergunta);
-  const intencao = classificar(pergunta);
+export async function* rodarGuia(p: PedidoGuia): AsyncGenerator<EventoAgente> {
   const i = p.idioma;
-  await espera(350);
+  const pergunta = [...p.mensagens].reverse().find((m) => m.papel === "turista")?.texto ?? "";
+  yield { tipo: "etapa", texto: ETAPA.lendo[i] };
+  await espera(300);
 
-  if (intencao === "emergencia") {
+  // emergência primeiro: a triagem do SOS decide, e o guia só aponta o caminho
+  const ficha = triar({ texto: pergunta, idioma: i });
+  if (classificar(pergunta) === "emergencia" || (ficha.urgencia === "urgente" && ficha.servico)) {
     yield { tipo: "etapa", texto: ETAPA.sos[i] };
     yield { tipo: "sos" };
-    yield* escrever(
-      t(
-        "Parece uma emergência. Toque em SOS para avisar a Central agora, ou ligue 190 (polícia), 192 (SAMU) ou 193 (bombeiros).",
-        "Parece una emergencia. Toca SOS para avisar a la Central ahora, o llama al 190 (policía), 192 (ambulancia) o 193 (bomberos).",
-        "This sounds like an emergency. Tap SOS to alert the Central now, or call 190 (police), 192 (ambulance) or 193 (fire and rescue).",
-      )[i],
-    );
-    return yield { tipo: "fim", modo: "simulado" };
+    yield* escrever(TEXTOS.emergencia[i]);
+    return yield { tipo: "fim" };
   }
 
-  if (contem(m, PALAVRAS_ALERTA)) {
-    yield { tipo: "etapa", texto: ETAPA.alertas[i] };
-    const ativos = dados.alertasAtivos(p.municipioId, p.alertas);
-    await espera(300);
-    yield { tipo: "etapa", texto: etapaAlertas(ativos.length, i) };
-    yield* escrever(
-      ativos.length
-        ? ativos.map((a) => `• ${a.titulo[i]}: ${a.texto[i]}`).join("\n")
-        : t(
-            "Hoje não há alertas oficiais ativos. Mesmo assim, respeite as bandeiras dos salva-vidas.",
-            "Hoy no hay alertas oficiales activos. Aun así, respeta las banderas de los socorristas.",
-            "There are no active official alerts today. Still, follow the lifeguards' flags.",
-          )[i],
-    );
-    return yield { tipo: "fim", modo: "simulado" };
+  const leitura = entender(pergunta, p);
+  // caso não urgente que o SOS sabe resolver (documento perdido, água-viva, farmácia…)
+  if (ficha.urgencia === "nao_urgente" && ficha.passos.length && !leitura.temas.some((x) => x !== "saudacao")) leitura.temas = ["ajuda"];
+  if (!leitura.temas.length) {
+    yield* escrever(TEXTOS.naoEntendi[i]);
+    return yield { tipo: "fim" };
+  }
+  if (leitura.temas.length > 1 || !["saudacao", "agradecimento"].includes(leitura.temas[0])) {
+    yield { tipo: "etapa", texto: `${t("entendi", "entendí", "understood")[i]}: ${leitura.temas.map((x) => NOME_TEMA[x][i]).join(" + ")}` };
   }
 
-  // citar o nome de uma praia ("a Concha está boa?") já conta como pergunta de praia
-  const todas = dados.praiasHoje(p.municipioId, p.alertas);
-  const citadas = todas.filter((x) => m.includes(normalizar(x.nome).replace(/^praia (do |dos |da )?/, "")));
-  if (intencao === "praia_segura" || citadas.length) {
-    yield { tipo: "etapa", texto: ETAPA.praias[i] };
-    const lista = citadas.length ? citadas : todas;
-    await espera(300);
-    yield { tipo: "etapa", texto: etapaPraias(lista.filter((x) => x.condicao.situacao === "propria").length, lista.length, i) };
-    yield { tipo: "praias", ids: lista.map((x) => x.id) };
-    yield* escrever(lista.map((x) => `• ${x.nome}: ${SITUACAO[x.condicao.situacao][i]} (${x.condicao.detalhe[i]})`).join("\n"));
-    return yield { tipo: "fim", modo: "simulado" };
-  }
-
-  if (contem(m, PALAVRAS_PASSEIO)) {
-    yield { tipo: "etapa", texto: ETAPA.atrativos[i] };
-    const lista = dados.atrativos(p.municipioId).slice(0, 4);
-    await espera(300);
-    yield* escrever(
-      `${t("Alguns passeios por aqui:", "Algunos paseos por aquí:", "A few things to do here:")[i]}\n${lista.map((a) => `• ${a.nome}: ${a.resumo[i]}`).join("\n")}`,
-    );
-    return yield { tipo: "fim", modo: "simulado" };
-  }
-
-  const grupo: dados.Grupo | null =
-    intencao === "comer" ? "comer" : intencao === "transporte" ? "transporte" : contem(m, PALAVRAS_HOSPEDAGEM) ? "hospedagem" : null;
-  if (grupo) {
-    yield { tipo: "etapa", texto: ETAPA.lugares[i] };
-    const lugares = dados.lugaresComSelo(p.municipioId, grupo, p.origemId).slice(0, 4);
-    await espera(300);
-    yield { tipo: "etapa", texto: etapaLugares(lugares.length, i) };
-    if (lugares.length) yield { tipo: "lugares", ids: lugares.map((l) => l.e.id) };
-    yield* escrever(
-      lugares.length
-        ? `${t("Estes têm o Selo TuristAí, do mais perto ao mais longe:", "Estos tienen el Sello TuristAí, del más cerca al más lejos:", "These have the TuristAí Seal, nearest first:")[i]}\n${lugares
-            .map(({ e, km }) => `• ${e.nome} (${e.local}, ${formatarDistancia(km, i)})`)
-            .join("\n")}`
-        : t("Ainda não há lugar com Selo para isso aqui.", "Todavía no hay lugares con Sello para eso aquí.", "There is no place with the Seal for that here yet.")[i],
-    );
-    return yield { tipo: "fim", modo: "simulado" };
-  }
-
-  if (intencao === "mare_clima") {
-    yield* escrever(
-      t(
-        `Hoje faz ${TEMPO_DEMO.temperatura}° com sol. A maré alta é às ${TEMPO_DEMO.mareAlta}; a baixa, cerca de 6 horas depois.`,
-        `Hoy hace ${TEMPO_DEMO.temperatura}° y sol. La marea alta es a las ${TEMPO_DEMO.mareAlta}; la baja, unas 6 horas después.`,
-        `Today it's ${TEMPO_DEMO.temperatura}° and sunny. High tide is at ${TEMPO_DEMO.mareAlta}; low tide about 6 hours later.`,
-      )[i],
-    );
-    return yield { tipo: "fim", modo: "simulado" };
-  }
-
-  if (intencao === "saude") {
-    yield* escrever(
-      t(
-        "Para urgência médica, ligue 192 (SAMU). Em outros casos, a recepção da sua hospedagem indica a farmácia mais próxima.",
-        "Para una urgencia médica, llama al 192 (SAMU). En otros casos, la recepción de tu alojamiento te indica la farmacia más cercana.",
-        "For a medical emergency, call 192 (ambulance). Otherwise, your hotel's front desk can point you to the nearest pharmacy.",
-      )[i],
-    );
-    return yield { tipo: "fim", modo: "simulado" };
-  }
-
-  yield* escrever(
-    t(
-      "Posso ajudar com praias de hoje, alertas, onde comer, passeios e transporte. Por exemplo: “a Concha está boa hoje?”",
-      "Puedo ayudarte con las playas de hoy, alertas, dónde comer, paseos y transporte. Por ejemplo: “¿la Concha está bien hoy?”",
-      "I can help with today's beaches, alerts, where to eat, tours and transport. For example: “is Concha OK today?”",
-    )[i],
-  );
-  yield { tipo: "fim", modo: "simulado" };
-}
-
-/** Roda o guia com o modelo; se faltar a chave ou a API falhar antes de responder, usa a reserva. */
-export async function* rodarGuia(p: PedidoGuia): AsyncGenerator<EventoAgente> {
-  yield { tipo: "etapa", texto: ETAPA.lendo[p.idioma] };
-  const modelo = modeloDoAgente();
-  if (modelo) {
-    let escreveu = false;
-    try {
-      for await (const e of guiaComModelo(modelo, p)) {
-        if (e.tipo === "texto") escreveu = true;
-        yield e;
-      }
-      if (escreveu) return yield { tipo: "fim", modo: "ia" };
-    } catch (erro) {
-      console.error("[agente/guia] modelo falhou, usando a reserva:", erro instanceof Error ? erro.message : erro);
-      if (escreveu) return yield { tipo: "fim", modo: "ia" };
+  const blocos: Bloco[] = [];
+  for (const tema of leitura.temas) {
+    const b = responderTema(tema, leitura, p, pergunta);
+    for (const etapa of b.etapas) {
+      await espera(280);
+      yield { tipo: "etapa", texto: etapa };
     }
+    if (b.lugares?.length) yield { tipo: "lugares", ids: b.lugares };
+    if (b.praias?.length) yield { tipo: "praias", ids: b.praias };
+    blocos.push(b);
   }
-  yield* guiaSimulado(p);
+  await espera(200);
+  yield* escrever(blocos.map((b) => b.texto).join("\n\n"));
+  yield { tipo: "fim" };
 }

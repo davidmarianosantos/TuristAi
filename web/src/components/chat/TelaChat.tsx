@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, BadgeCheck, CheckCheck, EllipsisVertical, Mic, Paperclip, Phone, SendHorizontal, Smile, Video } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CheckCheck, EllipsisVertical, MessageSquarePlus, Mic, Paperclip, Phone, Search, SendHorizontal, Smile, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { MUNICIPIO_PADRAO } from "@/data/seed";
 import type { Estabelecimento } from "@/data/tipos";
@@ -134,7 +134,7 @@ function BlocoChat({
   const { tr } = useIdioma();
   const minha = de === "turista";
   const cor = minha ? ZAP.enviada : ZAP.recebida;
-  const balao = `relative max-w-[80%] rounded-[8px] px-2.5 py-1.5 text-[15px] leading-[1.35] text-[#111b21] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${
+  const balao = `relative max-w-[80%] rounded-[8px] lg:max-w-[65%] px-2.5 py-1.5 text-[15px] leading-[1.35] text-[#111b21] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${
     minha ? "self-end" : "self-start"
   } ${primeiro ? (minha ? "rounded-tr-none" : "rounded-tl-none") : ""}`;
 
@@ -260,44 +260,90 @@ export function TelaChat({ origemSlug }: { origemSlug?: string | null }) {
 
   const temTexto = texto.trim().length > 0;
 
+  const status = digitando ? (etapa ?? t("digitando")) : t("online");
+  const ultima = msgs.at(-1);
+  const previa = digitando ? status : (ultima?.blocos.find((b) => b.tipo === "texto") as { texto: string } | undefined)?.texto ?? "";
+
   return (
+    <>
+      {/* desktop: fundo do app web de mensagens, com a faixa verde no alto */}
+      <div aria-hidden className="fixed inset-0 hidden bg-[#d1d7db] lg:block">
+        <div className="h-[127px] bg-[#00a884]" />
+      </div>
+
     <div
       ref={raiz}
-      className="fixed inset-x-0 top-0 mx-auto flex h-dvh max-w-[640px] flex-col overflow-hidden lg:top-4 lg:h-[calc(100dvh-32px)] lg:rounded-[20px] lg:shadow-3"
-      style={{ ...(altura ? { height: altura } : {}), backgroundColor: ZAP.fundo, backgroundImage: PAPEL }}
+      className="fixed inset-x-0 top-0 mx-auto flex h-dvh max-w-[640px] overflow-hidden lg:top-[19px] lg:h-[calc(100dvh-38px)] lg:w-[calc(100%-38px)] lg:max-w-[1400px] lg:shadow-[0_6px_18px_rgba(11,20,26,0.08)]"
+      style={altura ? { height: altura } : undefined}
     >
-      <header
-        className="flex items-center gap-1.5 px-1.5 pb-2 pt-[max(8px,env(safe-area-inset-top))] text-white"
-        style={{ background: ZAP.barra }}
-      >
+      {/* desktop: lista de conversas à esquerda, como no app web */}
+      <aside className="hidden w-[30%] min-w-[320px] max-w-[420px] shrink-0 flex-col border-r border-[#d1d7db] bg-white lg:flex">
+        <div className="flex h-[60px] shrink-0 items-center justify-between bg-[#f0f2f5] px-3">
+          <Link
+            href={hrefTurista({ idioma, origem: origemSlug })}
+            className="toque flex h-10 items-center gap-2 rounded-full px-2.5 text-[14px] font-semibold text-[#54656f] hover:bg-black/5"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} />
+            {t("voltarTurista")}
+          </Link>
+          <span aria-hidden className="flex items-center gap-5 pr-2 text-[#54656f]">
+            <MessageSquarePlus size={20} strokeWidth={2} />
+            <EllipsisVertical size={20} strokeWidth={2} />
+          </span>
+        </div>
+        <div aria-hidden className="border-b border-[#e9edef] px-3 py-2">
+          <div className="flex h-9 items-center gap-3 rounded-[8px] bg-[#f0f2f5] px-3 text-[14px] text-[#667781]">
+            <Search size={16} strokeWidth={2.2} />
+            {t("turistaChatBuscar")}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 bg-[#f0f2f5] px-3 py-3" aria-current="true">
+          <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
+            <Image src={mascote} alt="" aria-hidden className="h-10 w-auto" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center justify-between gap-2">
+              <span className="flex min-w-0 items-center gap-1 text-[16px] text-[#111b21]">
+                <span className="truncate">{nomeAssistente(idioma)}</span>
+                <BadgeCheck size={15} strokeWidth={2.2} className="shrink-0 fill-[#25D366] text-white" aria-hidden />
+              </span>
+              {ultima && <span className="shrink-0 text-[12px] text-[#667781]">{hora(ultima.em)}</span>}
+            </span>
+            <span className={`block truncate text-[14px] ${digitando ? "text-[#00a884]" : "text-[#667781]"}`}>{previa}</span>
+          </span>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col" style={{ backgroundColor: ZAP.fundo, backgroundImage: PAPEL }}>
+      <header className="flex items-center gap-1.5 bg-[#008069] px-1.5 pb-2 pt-[max(8px,env(safe-area-inset-top))] text-white lg:h-[60px] lg:bg-[#f0f2f5] lg:px-4 lg:py-0 lg:text-[#111b21]">
         <Link
           href={hrefTurista({ idioma, origem: origemSlug })}
           aria-label={t("voltarTurista")}
-          className="toque flex h-11 shrink-0 items-center gap-1 rounded-full pl-1.5 pr-1 hover:bg-white/10"
+          className="toque flex h-11 shrink-0 items-center gap-1 rounded-full pl-1.5 pr-1 hover:bg-white/10 lg:pointer-events-none lg:pl-0"
         >
-          <ArrowLeft size={22} strokeWidth={2.2} />
+          <ArrowLeft size={22} strokeWidth={2.2} className="lg:hidden" />
           <span className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-white">
             <Image src={mascote} alt="" aria-hidden priority className="h-8 w-auto" />
           </span>
         </Link>
-        <div className="min-w-0 flex-1 pl-1">
-          <p className="flex items-center gap-1 text-[17px] font-semibold leading-tight">
+        <div className="min-w-0 flex-1 pl-1 lg:pl-2">
+          <p className="flex items-center gap-1 text-[17px] font-semibold leading-tight lg:text-[16px] lg:font-normal">
             <span className="truncate">{nomeAssistente(idioma)}</span>
-            <BadgeCheck size={17} strokeWidth={2.2} className="shrink-0 fill-[#25D366] text-[#008069]" aria-label={t("contaComercial")} />
+            <BadgeCheck size={17} strokeWidth={2.2} className="shrink-0 fill-[#25D366] text-[#008069] lg:text-white" aria-label={t("contaComercial")} />
           </p>
-          <p className="truncate text-[13px] text-white/80" aria-live="polite">
-            {digitando ? (etapa ?? t("digitando")) : t("online")}
+          <p className="truncate text-[13px] text-white/80 lg:text-[#667781]" aria-live="polite">
+            {status}
           </p>
         </div>
         {/* ícones decorativos da barra, como no app (sem função na demo) */}
-        <span aria-hidden className="flex items-center gap-5 pr-3 text-white/95">
+        <span aria-hidden className="flex items-center gap-5 pr-3 text-white/95 lg:pr-1 lg:text-[#54656f]">
           <Video size={22} strokeWidth={2} />
           <Phone size={20} strokeWidth={2} />
           <EllipsisVertical size={20} strokeWidth={2} />
         </span>
       </header>
 
-      <div ref={lista} className="sem-barra min-h-0 flex-auto overflow-y-auto overscroll-contain px-3 py-3 [-webkit-overflow-scrolling:touch]">
+      <div ref={lista} className="sem-barra min-h-0 flex-auto overflow-y-auto overscroll-contain px-3 py-3 [-webkit-overflow-scrolling:touch] lg:px-[6%]">
         <div className="flex flex-col">
           <p className="mx-auto mb-3 rounded-[8px] bg-white/90 px-3 py-1 text-[12.5px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ color: ZAP.hora }}>
             {t("hoje")}
@@ -342,7 +388,7 @@ export function TelaChat({ origemSlug }: { origemSlug?: string | null }) {
           e.preventDefault();
           void enviar(texto);
         }}
-        className="flex items-end gap-1.5 px-1.5 pt-1.5 pb-[max(8px,env(safe-area-inset-bottom))]"
+        className="flex items-end gap-1.5 px-1.5 pt-1.5 pb-[max(8px,env(safe-area-inset-bottom))] lg:items-center lg:bg-[#f0f2f5] lg:px-4 lg:py-2.5"
       >
         <div className="flex min-h-12 min-w-0 flex-1 items-center gap-1 rounded-[24px] bg-white pl-3 pr-2 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
           <Smile aria-hidden size={24} strokeWidth={1.8} className="shrink-0" style={{ color: ZAP.hora }} />
@@ -371,6 +417,8 @@ export function TelaChat({ origemSlug }: { origemSlug?: string | null }) {
           {temTexto ? <SendHorizontal size={21} strokeWidth={2.2} /> : <Mic size={22} strokeWidth={2.2} />}
         </button>
       </form>
+      </div>
     </div>
+    </>
   );
 }

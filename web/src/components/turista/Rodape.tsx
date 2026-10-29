@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { MapPin } from "lucide-react";
 import type { Idioma, Municipio } from "@/data/tipos";
 import { CREDITOS_FOTOS } from "@/lib/creditos";
 import { useIdioma } from "@/lib/idioma";
@@ -17,10 +18,15 @@ import mascote from "../../../public/img/mascote.png";
 export function Rodape({
   municipios,
   atual,
+  disponiveis = [],
+  aoTrocarCidade,
   aoAbrirCreditos,
 }: {
   municipios: Municipio[];
   atual: string;
+  /** cidades com conteúdo viram botão; as outras ficam "em breve" */
+  disponiveis?: string[];
+  aoTrocarCidade?(id: string): void;
   aoAbrirCreditos(): void;
 }) {
   const { t, idioma, setIdioma } = useIdioma();
@@ -70,12 +76,36 @@ export function Rodape({
           <div className="mt-10 grid gap-8 border-t border-white/15 pt-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-16">
             <div>
               <h2 className="text-[13px] font-semibold text-field-ink">{t("turistaMunicipios")}</h2>
-              <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-semibold">
-                {municipios.map((m) => (
-                  <li key={m.id} aria-current={m.id === atual || undefined} className={m.id === atual ? "text-accent" : undefined}>
-                    {m.nome}
-                  </li>
-                ))}
+              <ul className="mt-3 flex flex-wrap gap-2 text-[14px] font-semibold">
+                {municipios.map((m) => {
+                  const atualAqui = m.id === atual;
+                  const tem = disponiveis.includes(m.id);
+                  return (
+                    <li key={m.id}>
+                      {tem ? (
+                        <button
+                          onClick={() => {
+                            aoTrocarCidade?.(m.id);
+                            window.scrollTo({ top: 0 });
+                          }}
+                          aria-current={atualAqui || undefined}
+                          className={`toque flex h-9 items-center gap-1.5 rounded-full px-3.5 ${
+                            atualAqui ? "bg-accent text-ink" : "bg-white/10 text-white ring-1 ring-inset ring-white/20 hover:bg-white/15"
+                          }`}
+                        >
+                          {atualAqui && <MapPin size={14} strokeWidth={2.6} aria-hidden />}
+                          {m.nome}
+                        </button>
+                      ) : (
+                        // sem dados ainda: aparece, mas não leva a lugar nenhum
+                        <span className="flex h-9 items-center gap-1.5 rounded-full px-3.5 text-white/50 ring-1 ring-inset ring-white/10">
+                          {m.nome}
+                          <span className="text-[11.5px] font-medium text-field-ink/70">{t("turistaEmBreve")}</span>
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             <div>
