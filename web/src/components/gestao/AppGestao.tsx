@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { repositorio, type Ensaio, type Repositorio } from "@/data/repositorio";
-import type { Alerta, Idioma, Municipio, SessoesEEntregas, Severidade } from "@/data/tipos";
+import type { Alerta, Estabelecimento, Idioma, Municipio, SessoesEEntregas, Severidade } from "@/data/tipos";
 import { calcularAlcance, formatarTempo } from "./alcance";
 import { AlertasAtivos } from "./AlertasAtivos";
 import { PublicarAlerta, type PraiaDaRegiao } from "./PublicarAlerta";
+import { Trade } from "./Trade";
 
 type Repo = Repositorio & Ensaio;
 
@@ -45,12 +46,15 @@ export function AppGestao() {
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [praias, setPraias] = useState<PraiaDaRegiao[]>([]);
   const [alertas, setAlertas] = useState<Alerta[]>([]);
+  const [comSelo, setComSelo] = useState<Estabelecimento[]>([]);
   const [dados, setDados] = useState<SessoesEEntregas>({ sessoes: [], entregas: [] });
-  const [agora, setAgora] = useState(() => new Date());
+  // valor fixo no prerender (o Next não aceita new Date() aqui); a hora certa chega no efeito abaixo
+  const [agora, setAgora] = useState(() => new Date(0));
 
   // Sessões e Entregas ao vivo; o relógio anda a cada 30 s para a virada do dia
   useEffect(() => {
     if (!repo) return;
+    setAgora(new Date());
     void repo.sessoesEEntregas().then(setDados);
     const parar = repo.aoMudarSessoesEEntregas((d) => {
       setDados(d);
@@ -90,8 +94,10 @@ export function AppGestao() {
           ativos.flat().sort((a, b) => PESO[a.severidade] - PESO[b.severidade] || b.criadoEm.localeCompare(a.criadoEm)),
         );
       };
+      const comSelo = (await Promise.all(lista.map((m) => repo.estabelecimentosComSelo(m.id)))).flat();
       if (!vivo) return;
       setMunicipios(lista);
+      setComSelo(comSelo);
       await carregar();
       if (vivo) parar = lista.map((m) => repo.aoMudarAlertas(m.id, () => void carregar()));
     })();
@@ -123,6 +129,17 @@ export function AppGestao() {
           />
         )}
       />
+      <Trade comSelo={comSelo} />
+      <footer className="flex flex-wrap items-center gap-3 pt-2">
+        <button
+          type="button"
+          onClick={() => repo.limparSessoes()}
+          className="toque h-10 rounded-sm bg-surface px-4 text-[14px] font-semibold"
+        >
+          Zerar demo
+        </button>
+        <span className="text-[13px] text-ink-2">Apaga as Sessões e Entregas gravadas neste navegador.</span>
+      </footer>
     </main>
   );
 }
