@@ -1,11 +1,12 @@
 import type { Idioma } from "@/data/tipos";
 
-// O contexto do turista (idioma e hotel de origem do QR) viaja pela URL entre as telas.
-type Contexto = { idioma: Idioma; origem?: string | null };
+// O contexto do turista (idioma, hotel de origem do QR e cidade escolhida) viaja pela URL entre as telas.
+type Contexto = { idioma: Idioma; origem?: string | null; cidade?: string | null };
 
-const query = ({ idioma, origem }: Contexto) => {
+const query = ({ idioma, origem, cidade }: Contexto) => {
   const p = new URLSearchParams({ lang: idioma });
   if (origem) p.set("origem", origem);
+  if (cidade) p.set("cidade", cidade);
   return p.toString();
 };
 

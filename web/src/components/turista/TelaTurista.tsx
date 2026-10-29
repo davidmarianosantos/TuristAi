@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MUNICIPIO_PADRAO } from "@/data/seed";
 import type { Alerta, Atrativo, Estabelecimento, Municipio, PraiaHoje, Sessao } from "@/data/tipos";
 import { useIdioma } from "@/lib/idioma";
 import { distanciaKm } from "@/lib/mapa";
+import { hrefTurista } from "@/lib/rotas";
 import { Folha } from "@/components/ui/Folha";
 import { Alertas } from "./Alertas";
 import { AssistenteCampo, FolhaAssistente } from "./Assistente";
@@ -14,6 +16,7 @@ import { Lugares } from "./Lugares";
 import { PainelMapa } from "./PainelMapa";
 import { Praias, Titulo } from "./Praias";
 import { useRepositorio } from "./RepositorioContext";
+import { FolhaLugar } from "./FolhaLugar";
 import { FolhaCreditos, Rodape } from "./Rodape";
 import { BotaoSOSTopo, FolhaSOS, RodapeSOS } from "./SOS";
 import { BotaoWhatsApp, ConviteWhatsApp, deveMostrarConvite, LinkWhatsAppTopo, marcarConviteVisto } from "./WhatsApp";
@@ -26,7 +29,12 @@ type Dados = {
   lugares: Estabelecimento[];
   atrativos: Atrativo[];
   municipios: Municipio[];
+  /** municípios que já têm conteúdo; os outros aparecem como "em breve" */
+  disponiveis: string[];
 };
+
+/** De onde medir as distâncias: o hotel do QR, se for nesta cidade; senão, o centro da cidade. */
+const pontoDe = (d: Pick<Dados, "origem" | "municipio">) => (d.origem && d.origem.municipioId === d.municipio.id ? d.origem : d.municipio);
 
 function Esqueleto() {
   return (
@@ -38,8 +46,18 @@ function Esqueleto() {
   );
 }
 
-export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?: string | null; forcarConvite?: boolean }) {
+export function TelaTurista({
+  origemSlug,
+  cidadeId,
+  forcarConvite = false,
+}: {
+  origemSlug?: string | null;
+  /** cidade escolhida no seletor (?cidade=); sem ela, vale a cidade do hotel do QR */
+  cidadeId?: string | null;
+  forcarConvite?: boolean;
+}) {
   const repo = useRepositorio();
+  const router = useRouter();
   const { t, idioma } = useIdioma();
 
   const [dados, setDados] = useState<Dados | null>(null);
@@ -52,6 +70,7 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
   const [convite, setConvite] = useState(false);
   const [atrativo, setAtrativo] = useState<Atrativo | null>(null);
   const [creditos, setCreditos] = useState(false);
+  const [lugar, setLugar] = useState<Estabelecimento | null>(null);
 
   const secaoAlertas = useRef<HTMLElement>(null);
   const alertasVisiveis = useRef(true);
@@ -62,7 +81,9 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
     let vivo = true;
     (async () => {
       const origem = origemSlug ? await repo.estabelecimentoPorSlug(origemSlug) : null;
-      const municipio = await repo.municipio(origem?.municipioId ?? MUNICIPIO_PADRAO);
+      const disponiveis = await repo.municipiosComDados();
+      const escolhida = cidadeId && disponiveis.includes(cidadeId) ? cidadeId : null;
+      const municipio = await repo.municipio(escolhida ?? origem?.municipioId ?? MUNICIPIO_PADRAO);
       const [sessao, praias, lugares, ativos, atrativos, municipios] = await Promise.all([
         repo.criarSessao({ idioma, canal: "qr", origemId: origem?.id }),
         repo.praiasHoje(municipio.id),
@@ -75,11 +96,11 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
       conhecidos.current = new Set(ativos.map((a) => a.id));
       setAlertas(ativos);
       // o próprio hotel de origem não entra na vitrine; o resto vem do mais perto ao mais longe
-      const de = origem ?? municipio;
+      const de = pontoDe({ origem, municipio });
       const vitrine = lugares
         .filter((l) => l.id !== origem?.id)
         .sort((a, b) => distanciaKm(de, a) - distanciaKm(de, b));
-      setDados({ municipio, origem, sessao, praias, lugares: vitrine, atrativos, municipios });
+      setDados({ municipio, origem, sessao, praias, lugares: vitrine, atrativos, municipios, disponiveis });
       // convite para o WhatsApp: logo depois de a tela aparecer, uma vez por sessão
       if (deveMostrarConvite(forcarConvite)) {
         setTimeout(() => {
@@ -94,7 +115,13 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
     };
     // a sessão é criada com o idioma do primeiro acesso
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repo, origemSlug]);
+  }, [repo, origemSlug, cidadeId]);
+
+  // trocar de cidade muda a URL; a página recarrega os dados da nova cidade e volta ao topo
+  const trocarCidade = (id: string) => {
+    if (id === dados?.municipio.id) return;
+    router.replace(hrefTurista({ idioma, origem: origemSlug, cidade: id }));
+  };
 
   // alertas ao vivo
   const municipioId = dados?.municipio.id;
@@ -137,7 +164,7 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
   const abrirAssistente = (p?: string) =>
     setAssistente((a) => ({ aberta: true, pergunta: p ? { texto: p, n: (a.pergunta?.n ?? 0) + 1 } : a.pergunta }));
 
-  const de = dados ? (dados.origem ?? dados.municipio) : undefined;
+  const de = dados ? pontoDe(dados) : undefined;
 
   return (
     <div className="min-h-dvh">
@@ -171,7 +198,12 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
                   cidade={dados.municipio.nome}
                   origem={dados.origem?.nome}
                   praias={dados.praias}
-                  comFoto={dados.municipio.id === "itacare"}
+                  comFoto={dados.municipio.id === "itacare" || dados.municipio.id === "ilheus"}
+                  foto={dados.municipio.id === "ilheus" ? "/img/fotos/catedral-ilheus.jpg" : undefined}
+                  municipioId={dados.municipio.id}
+                  municipios={dados.municipios}
+                  disponiveis={dados.disponiveis}
+                  aoTrocarCidade={trocarCidade}
                   acoes={
                     <>
                       <LinkWhatsAppTopo origemSlug={origemSlug} />
@@ -179,6 +211,8 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
                     </>
                   }
                   busca={<AssistenteCampo aoPerguntar={abrirAssistente} sufixo="-busca" variante="busca" />}
+                  alertas={alertas.length}
+                  aoVerAlertas={() => secaoAlertas.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
                 />
                 <div className="mx-auto max-w-[640px] lg:contents">
                   <Alertas ref={secaoAlertas} alertas={alertas} novos={novos} />
@@ -193,7 +227,7 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
                 <Atrativos atrativos={dados.atrativos} de={de} aoAbrir={setAtrativo} />
                 {/* desktop: cada seção é uma linha só (setas no título) e, abaixo, o mapa em faixa larga */}
                 <div className="lg:mt-14">
-                  <Lugares lugares={dados.lugares} de={de} aoAbrirMapa={() => setMapa(true)} />
+                  <Lugares lugares={dados.lugares} de={de} aoAbrirMapa={() => setMapa(true)} aoAbrirLugar={setLugar} />
                 </div>
                 <section aria-labelledby="t-mapa" className="hidden lg:block lg:pt-14">
                   <Titulo id="t-mapa">{t("mapa")}</Titulo>
@@ -207,7 +241,7 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
           )}
       </main>
 
-      {dados && <Rodape municipios={dados.municipios} atual={dados.municipio.id} aoAbrirCreditos={() => setCreditos(true)} />}
+      {dados && <Rodape municipios={dados.municipios} atual={dados.municipio.id} disponiveis={dados.disponiveis} aoTrocarCidade={trocarCidade} aoAbrirCreditos={() => setCreditos(true)} />}
 
       <BotaoWhatsApp origemSlug={origemSlug} />
       <RodapeSOS aoAbrir={() => setSos(true)} />
@@ -230,7 +264,18 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
           <Folha aberta={mapa} aoFechar={() => setMapa(false)} titulo={t("mapa")} rotuloFechar={t("voltar")} telaCheia>
             {mapa && <PainelMapa lugares={dados.lugares} praias={dados.praias} centro={dados.municipio} de={de} />}
           </Folha>
-          <FolhaAtrativo atrativo={atrativo} de={de} cidade={dados.municipio.nome} aoFechar={() => setAtrativo(null)} />
+          <FolhaAtrativo
+            atrativo={atrativo}
+            de={de}
+            cidade={dados.municipio.nome}
+            guias={dados.lugares.filter((l) => l.categoria === "receptivo" || l.categoria === "condutor")}
+            aoAbrirLugar={(l) => {
+              setAtrativo(null);
+              setLugar(l);
+            }}
+            aoFechar={() => setAtrativo(null)}
+          />
+          <FolhaLugar lugar={lugar} de={de} aoFechar={() => setLugar(null)} />
           <FolhaCreditos aberta={creditos} aoFechar={() => setCreditos(false)} />
         </>
       )}

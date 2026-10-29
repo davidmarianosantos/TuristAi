@@ -15,7 +15,7 @@ export type EventoAgente =
   | { tipo: "sos" }
   /** ficha da triagem do SOS, pronta para a Central */
   | { tipo: "ficha"; ficha: FichaSOS }
-  | { tipo: "fim"; modo: "ia" | "simulado" };
+  | { tipo: "fim" };
 
 export type MensagemAgente = { papel: "turista" | "agente"; texto: string };
 

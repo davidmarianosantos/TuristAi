@@ -21,7 +21,7 @@ export function respostaNdjson(eventos: AsyncGenerator<EventoAgente>) {
       } catch (erro) {
         console.error("[agente] erro no fluxo:", erro instanceof Error ? erro.message : erro);
       } finally {
-        if (!fechou) saida.enqueue(linha({ tipo: "fim", modo: "simulado" }));
+        if (!fechou) saida.enqueue(linha({ tipo: "fim" }));
         saida.close();
       }
     },

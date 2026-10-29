@@ -12,21 +12,21 @@ export type Falas = {
 
 export const FALAS: Record<Idioma, Falas> = {
   pt: {
-    nomeAssistente: "TuristAí",
+    nomeAssistente: "Cacauzito",
     boasVindas: (origem) =>
-      `Olá! Sou o assistente do TuristAí na Costa do Cacau${origem ? `, aqui com você pela ${origem}` : ""}. Pergunte sobre praias, onde comer, transporte ou peça ajuda.`,
+      `Olá! Sou o Cacauzito, o assistente do TuristAí na Costa do Cacau${origem ? `, aqui com você pela ${origem}` : ""}. Pergunte sobre praias, onde comer, transporte ou peça ajuda.`,
     padrao: "Recebi sua mensagem. Em breve vou te ajudar por aqui.",
   },
   es: {
-    nomeAssistente: "TuristAí",
+    nomeAssistente: "Cacauzito",
     boasVindas: (origem) =>
-      `¡Hola! Soy el asistente de TuristAí en la Costa do Cacau${origem ? `, contigo desde ${origem}` : ""}. Pregúntame por playas, dónde comer, transporte o pide ayuda.`,
+      `¡Hola! Soy Cacauzito, el asistente de TuristAí en la Costa do Cacau${origem ? `, contigo desde ${origem}` : ""}. Pregúntame por playas, dónde comer, transporte o pide ayuda.`,
     padrao: "Recibí tu mensaje. Pronto te ayudo por aquí.",
   },
   en: {
-    nomeAssistente: "TuristAí",
+    nomeAssistente: "Cacauzito",
     boasVindas: (origem) =>
-      `Hi! I'm the TuristAí assistant for the Costa do Cacau${origem ? `, here with you from ${origem}` : ""}. Ask me about beaches, where to eat, transport, or ask for help.`,
+      `Hi! I'm Cacauzito, the TuristAí assistant for the Costa do Cacau${origem ? `, here with you from ${origem}` : ""}. Ask me about beaches, where to eat, transport, or ask for help.`,
     padrao: "Got your message. I'll help you here soon.",
   },
 };

@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { Check, Clock, Footprints, Landmark, MapPin, Navigation, Sailboat, Sprout, Sunset, Waves, type LucideIcon } from "lucide-react";
+import { Check, ChevronRight, Clock, Footprints, Landmark, MapPin, Navigation, Sailboat, Sprout, Star, Sunset, Waves, type LucideIcon } from "lucide-react";
 import { useState } from "react";
-import type { Atrativo, TipoAtrativo, Traduzido } from "@/data/tipos";
+import type { Atrativo, Estabelecimento, TipoAtrativo, Traduzido } from "@/data/tipos";
 import { useIdioma } from "@/lib/idioma";
 import { distanciaKm, formatarDistancia } from "@/lib/mapa";
 import { Folha } from "@/components/ui/Folha";
+import { Selo } from "./Lugares";
 import { Titulo } from "./Praias";
 import { CLASSE_TRILHO, ITEM_TRILHO, SetasTrilho, useTrilho } from "./Trilho";
 
@@ -63,7 +64,7 @@ function CartaoAtrativo({ a, de, aoAbrir }: { a: Atrativo; de?: Ponto; aoAbrir()
         )}
       </span>
       <span>
-        <span className="block text-balance text-[21px] font-bold leading-[1.12] tracking-[-0.02em]">{a.nome}</span>
+        <span className="block text-balance text-[21px] font-bold leading-[1.12] tracking-[-0.02em]">{tr(a.nomes)}</span>
         <span className="mt-1.5 line-clamp-2 block text-[14px] leading-snug text-white/85">{tr(a.resumo)}</span>
       </span>
     </button>
@@ -104,14 +105,19 @@ export function FolhaAtrativo({
   atrativo,
   de,
   cidade,
+  guias = [],
+  aoAbrirLugar,
   aoFechar,
 }: {
   atrativo: Atrativo | null;
   de?: Ponto;
   cidade: string;
+  /** agências e guias recomendados: aparecem nos passeios que pedem companhia */
+  guias?: Estabelecimento[];
+  aoAbrirLugar?(l: Estabelecimento): void;
   aoFechar(): void;
 }) {
-  const { t, tr } = useIdioma();
+  const { t, tr, idioma } = useIdioma();
   // guarda o último aberto para a folha não esvaziar enquanto fecha
   const [ultimo, setUltimo] = useState(atrativo);
   if (atrativo && atrativo !== ultimo) setUltimo(atrativo);
@@ -120,7 +126,7 @@ export function FolhaAtrativo({
   const tipo = a ? TIPO_ATRATIVO[a.tipo] : null;
 
   return (
-    <Folha aberta={!!atrativo} aoFechar={aoFechar} titulo={a?.nome ?? ""} rotuloFechar={t("fechar")}>
+    <Folha aberta={!!atrativo} aoFechar={aoFechar} titulo={a ? tr(a.nomes) : ""} rotuloFechar={t("fechar")}>
       {a && tipo && (
         <div className="sem-barra min-h-0 flex-auto overflow-y-auto px-5 pb-[max(20px,env(safe-area-inset-bottom))]">
           <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] bg-field">
@@ -141,6 +147,37 @@ export function FolhaAtrativo({
               </li>
             ))}
           </ul>
+          {/* trilha, barco, rafting e fazenda: quem leva, entre os recomendados, com os detalhes a um toque */}
+          {["trilha", "passeio", "aventura", "cacau"].includes(a.tipo) && guias.length > 0 && (
+            <>
+              <h3 className="mt-6 text-[16px] font-bold">{t("turistaQuemLeva")}</h3>
+              <ul className="mt-2.5 flex flex-col gap-2">
+                {guias.map((g) => (
+                  <li key={g.id}>
+                    <button
+                      onClick={() => aoAbrirLugar?.(g)}
+                      className="toque flex w-full items-center gap-3 rounded-[18px] border border-line p-2.5 text-left hover:bg-surface"
+                    >
+                      <span className="relative size-14 shrink-0 overflow-hidden rounded-[12px] bg-mata">
+                        {g.foto && <Image src={g.foto} alt="" fill sizes="56px" className="object-cover" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <b className="flex items-center gap-1.5 text-[15px]">
+                          <Selo tamanho={18} />
+                          <span className="truncate">{g.nome}</span>
+                        </b>
+                        <span className="mt-0.5 flex items-center gap-1 text-[13px] text-ink-2">
+                          <Star size={13} strokeWidth={2.2} className="fill-accent text-accent" aria-hidden />
+                          {g.avaliacao.nota.toLocaleString(idioma === "pt" ? "pt-BR" : idioma, { minimumFractionDigits: 1 })} · {tr(g.descricao)}
+                        </span>
+                      </span>
+                      <ChevronRight size={18} className="shrink-0 text-ink-2" aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           {/* rota pelo nome do lugar: o mapa acha a entrada certa melhor que as nossas coordenadas aproximadas */}
           {a.lat != null && (
             <a

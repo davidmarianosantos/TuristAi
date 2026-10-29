@@ -71,6 +71,10 @@ export type Estabelecimento = {
   local: string;
   /** avaliações de turistas na plataforma (fictícias no protótipo) */
   avaliacao: { nota: number; total: number };
+  /** endereço e contato para a folha de detalhes (fictícios no protótipo) */
+  endereco?: string;
+  telefone?: string;
+  horario?: Traduzido;
   /** foto do cartão, caminho em /public; sem foto, o cartão mostra o ícone da categoria */
   foto?: string;
 };
@@ -82,7 +86,10 @@ export type Atrativo = {
   id: string;
   municipioId: string;
   tipo: TipoAtrativo;
+  /** nome oficial do lugar, em português (é o que vai na busca do mapa) */
   nome: string;
+  /** o nome para o turista ler, no idioma dele */
+  nomes: Traduzido;
   /** sem coordenadas quando não é um ponto só (ex.: visitas a fazendas da região) */
   lat?: number;
   lng?: number;
@@ -170,8 +177,8 @@ export type FichaSOS = {
   passos: string[];
   local?: { lat: number; lng: number } | null;
   hotel?: string | null;
-  /** "ia" = modelo de linguagem; "simulado" = regras de reserva (sem chave ou com a API fora) */
-  modo: "ia" | "simulado";
+  /** pistas que a triagem encontrou no texto, em português (ex.: “cuchillo” → faca) */
+  sinais: string[];
 };
 
 export type PraiaHoje = Local & { condicao: Condicao };

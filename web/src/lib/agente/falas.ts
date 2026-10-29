@@ -7,10 +7,10 @@ export const ETAPA = {
   lendo: t("lendo a mensagem…", "leyendo el mensaje…", "reading your message…"),
   alertas: t("consultando alertas oficiais…", "consultando alertas oficiales…", "checking official alerts…"),
   praias: t("consultando praias…", "consultando playas…", "checking beaches…"),
-  lugares: t("buscando lugares com Selo…", "buscando lugares con Sello…", "looking up places with the Seal…"),
+  lugares: t("buscando recomendados…", "buscando recomendados…", "looking up recommended places…"),
   atrativos: t("consultando passeios…", "consultando paseos…", "checking tours…"),
   sos: t("sinal de emergência: indicando o SOS", "señal de emergencia: indicando el SOS", "emergency signal: pointing to SOS"),
-  triando: t("fazendo a triagem…", "haciendo la triaje…", "triaging…"),
+  triando: t("fazendo a triagem…", "haciendo el triaje…", "triaging…"),
   traduzido: t("traduzido para o português para a Central", "traducido al portugués para la Central", "translated into Portuguese for the Central"),
   paraCentral: t("ficha enviada à Central", "ficha enviada a la Central", "report sent to the Central"),
   resolvendo: t("não é emergência: resolvendo por aqui", "no es emergencia: lo resolvemos aquí", "not an emergency: solving it here"),
@@ -26,7 +26,7 @@ export function etapaPraias(aptas: number, total: number, idioma: Idioma) {
 }
 
 export function etapaLugares(n: number, idioma: Idioma) {
-  return t(`${n} lugar(es) com Selo encontrado(s)`, `${n} lugar(es) con Sello encontrado(s)`, `${n} place(s) with the Seal found`)[idioma];
+  return t(`${n} recomendado(s) encontrado(s)`, `${n} recomendado(s) encontrado(s)`, `${n} recommended place(s) found`)[idioma];
 }
 
 export const SITUACAO: Record<Situacao, Traduzido> = {
@@ -55,7 +55,6 @@ export function etapaClassificado(urgencia: keyof typeof URGENCIA, tipo: TipoOco
   return `${rotulo}: ${URGENCIA[urgencia][idioma]} · ${TIPO_OCORRENCIA[tipo][idioma]}`;
 }
 
-export const NOME_IDIOMA: Record<Idioma, string> = { pt: "português do Brasil", es: "espanhol", en: "inglês" };
 
 /** Espera curta para as etapas simuladas não piscarem rápido demais na tela. */
 export const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
