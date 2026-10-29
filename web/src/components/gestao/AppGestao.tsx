@@ -6,6 +6,7 @@ import type { Alerta, ChamadoSOS, Estabelecimento, Idioma, Municipio, SessoesEEn
 import { calcularAlcance, formatarTempo } from "./alcance";
 import { AlertasAtivos } from "./AlertasAtivos";
 import { Cabecalho, REGIAO } from "./Cabecalho";
+import { Cobertura } from "./Cobertura";
 import { GraficoAlcanceIdioma, GraficoChamadosServico, GraficoSelosCategoria } from "./Graficos";
 import { IndicadorAlcance, IndicadorEconomia, IndicadorSeguranca } from "./Indicadores";
 import { PublicarAlerta, type PraiaDaRegiao } from "./PublicarAlerta";
@@ -23,20 +24,20 @@ function LinhaAlcance({ alerta, dados, agora, municipio }: { alerta: Alerta; dad
   }`;
   if (r.abertas === 0)
     return (
-      <p className="text-[14px] text-ink-2">
+      <p className="text-[13px] text-(--ba-texto-2)">
         Nenhuma Sessão aberta hoje em {municipio} · {tempo}
       </p>
     );
   const idiomas = IDIOMAS.filter((i) => r.porIdioma[i] > 0).map((i) => `${i.toUpperCase()} ${r.porIdioma[i]}`);
   return (
-    <div className="text-[14px]">
+    <div className="text-[13px]">
       <p>
-        <b>
+        <b className="font-semibold">
           Alcance: {r.alcancadas} de {r.abertas} Sessões abertas hoje ({Math.round((r.alcancadas / r.abertas) * 100)}%)
         </b>
-        {idiomas.length > 0 && <span className="text-ink-2"> · {idiomas.join(" · ")}</span>}
+        {idiomas.length > 0 && <span className="text-(--ba-texto-2)"> · {idiomas.join(" · ")}</span>}
       </p>
-      <p className="text-ink-2">{tempo}</p>
+      <p className="text-(--ba-texto-2)">{tempo}</p>
     </div>
   );
 }
@@ -139,6 +140,12 @@ export function AppGestao() {
   // implantado = já tem dados no repositório (praias do dia ou Estabelecimentos com Selo)
   const implantado = naRegiao || praias.some((p) => p.municipio.id === escopo) || seloEscopo.length > 0;
   const agoraMs = relogio?.getTime() ?? 0;
+  const situacoes = municipios.map((municipio) => ({
+    municipio,
+    praias: praias.filter((p) => p.municipio.id === municipio.id).length,
+    selos: comSelo.filter((e) => e.municipioId === municipio.id).length,
+    alertas: alertas.filter((a) => a.municipioId === municipio.id).length,
+  }));
 
   return (
     <>
@@ -166,6 +173,23 @@ export function AppGestao() {
             implantado={implantado}
           />
         </section>
+        <section aria-label="Operação" className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <PublicarAlerta praias={praias} aoPublicar={(a) => repo.publicarAlerta(a)} />
+          <AlertasAtivos
+            alertas={alertasEscopo}
+            noEscopo={noEscopo}
+            municipios={municipios}
+            aoEncerrar={(id) => void repo.encerrarAlerta(id)}
+            alcance={(a) => (
+              <LinhaAlcance
+                alerta={a}
+                dados={dados}
+                agora={agora}
+                municipio={municipios.find((m) => m.id === a.municipioId)?.nome ?? a.municipioId}
+              />
+            )}
+          />
+        </section>
         <section aria-label="Gráficos" className="grid items-stretch gap-4 lg:grid-cols-3">
           <GraficoAlcanceIdioma
             alerta={ultimoAlerta}
@@ -183,27 +207,17 @@ export function AppGestao() {
             implantado={implantado}
           />
         </section>
-        <section aria-label="Operação" className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <PublicarAlerta praias={praias} aoPublicar={(a) => repo.publicarAlerta(a)} />
-          <AlertasAtivos
-            alertas={alertasEscopo}
-            municipios={municipios}
-            aoEncerrar={(id) => void repo.encerrarAlerta(id)}
-            alcance={(a) => (
-              <LinhaAlcance
-                alerta={a}
-                dados={dados}
-                agora={agora}
-                municipio={municipios.find((m) => m.id === a.municipioId)?.nome ?? a.municipioId}
-              />
-            )}
-          />
-        </section>
-        <footer className="flex flex-wrap items-center gap-3 border-t border-(--ba-linha) pt-4">
-          <button type="button" onClick={() => repo.limparSessoes()} className="g-botao g-botao-contorno">
-            Zerar demo
-          </button>
-          <span className="text-[13px] text-(--ba-texto-2)">Apaga as Sessões e Entregas gravadas neste navegador.</span>
+        <Cobertura situacoes={situacoes} escopo={escopo} aoEscolher={setEscopo} />
+        <footer className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-(--ba-linha) pt-4 text-[12px] text-(--ba-texto-2)">
+          <p>
+            Todos os números vêm do estado ao vivo da plataforma. Onde ainda não há dado, o painel mostra o vazio.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <span>Apaga as Sessões e Entregas gravadas neste navegador.</span>
+            <button type="button" onClick={() => repo.limparSessoes()} className="g-botao g-botao-contorno h-8 px-3 text-[13px]">
+              Zerar demo
+            </button>
+          </div>
         </footer>
       </main>
     </>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Alerta, Idioma, Municipio, PraiaHoje } from "@/data/tipos";
+import { Cartao } from "./Cartao";
 import { criarAlerta, MODELOS_ALERTA, type ModeloAlerta } from "./modelos";
 
 export type PraiaDaRegiao = { municipio: Municipio; praia: PraiaHoje };
@@ -37,15 +38,13 @@ export function PublicarAlerta({ praias, aoPublicar }: { praias: PraiaDaRegiao[]
   };
 
   return (
-    <section className="rounded-md bg-card p-5 shadow-1">
-      <h2 className="text-[20px] font-extrabold">Publicar alerta</h2>
-
-      <label className="mt-4 block text-[14px] font-semibold text-ink-2" htmlFor="gestao-praia">
+    <Cartao titulo="Publicar alerta" contexto="Modelo de alerta já traduzido para PT, ES e EN">
+      <label className="block text-[13px] font-medium text-(--ba-texto-2)" htmlFor="gestao-praia">
         Praia
       </label>
       <select
         id="gestao-praia"
-        className="mt-1 h-11 w-full rounded-sm border border-line bg-card px-3 text-[16px]"
+        className="g-campo mt-1"
         value={praiaId}
         onChange={(e) => setPraiaId(e.target.value)}
       >
@@ -63,16 +62,18 @@ export function PublicarAlerta({ praias, aoPublicar }: { praias: PraiaDaRegiao[]
         ))}
       </select>
 
-      <p className="mt-4 text-[14px] font-semibold text-ink-2">Modelo de alerta</p>
-      <div className="mt-1 flex flex-wrap gap-2">
+      <p className="mt-4 text-[13px] font-medium text-(--ba-texto-2)">Modelo de alerta</p>
+      <div className="mt-1 flex flex-wrap gap-2" role="group" aria-label="Modelo de alerta">
         {MODELOS_ALERTA.map((m) => (
           <button
             key={m.id}
             type="button"
             aria-pressed={modelo?.id === m.id}
             onClick={() => setModelo(m)}
-            className={`toque h-11 rounded-sm border px-4 text-[15px] font-semibold ${
-              modelo?.id === m.id ? "border-ink bg-ink text-white" : "border-line bg-surface"
+            className={`g-botao border ${
+              modelo?.id === m.id
+                ? "border-(--ba-azul) bg-(--ba-azul) text-white"
+                : "border-(--ba-linha) bg-(--ba-card) text-(--ba-texto) hover:bg-(--ba-fundo)"
             }`}
           >
             {m.nome}
@@ -81,10 +82,10 @@ export function PublicarAlerta({ praias, aoPublicar }: { praias: PraiaDaRegiao[]
       </div>
 
       {escolhida && modelo && (
-        <div className="mt-4 space-y-2 rounded-sm bg-surface p-3 text-[15px]">
+        <div className="mt-4 space-y-2 rounded-[4px] border border-(--ba-linha-2) bg-(--ba-fundo) p-3 text-[14px]">
           {IDIOMAS.map(({ id, rotulo }) => (
             <p key={id}>
-              <span className="mr-2 text-[12px] font-bold text-ink-2">{rotulo}</span>
+              <span className="mr-2 inline-block w-6 text-[11px] font-semibold text-(--ba-texto-2)">{rotulo}</span>
               <b>{modelo.titulo(escolhida.praia.nome)[id]}</b> · {modelo.texto[id]}
             </p>
           ))}
@@ -96,16 +97,16 @@ export function PublicarAlerta({ praias, aoPublicar }: { praias: PraiaDaRegiao[]
           type="button"
           disabled={!escolhida || !modelo || travado}
           onClick={publicar}
-          className="toque h-12 rounded-sm bg-danger px-5 text-[16px] font-semibold text-white disabled:opacity-40"
+          className="g-botao g-botao-primario h-11 px-5 text-[15px]"
         >
           Publicar alerta
         </button>
         {publicadoEm && (
-          <span className="text-[14px] text-ink-2">
+          <span className="text-[13px] text-(--ba-texto-2)" role="status">
             Publicado às {publicadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} em PT, ES e EN.
           </span>
         )}
       </div>
-    </section>
+    </Cartao>
   );
 }
