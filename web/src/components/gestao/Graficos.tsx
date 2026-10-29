@@ -97,10 +97,10 @@ export function GraficoChamadosServico({ chamados, agora }: { chamados: ChamadoS
   if (aDefinir > 0)
     linhas.push({
       id: "a-definir",
-      rotulo: "A definir (triagem humana)",
+      rotulo: "A definir",
       segmentos: [{ valor: aDefinir, cor: AZUL }],
       valor: String(aDefinir),
-      dica: `${plural(aDefinir, "chamado", "chamados")} sem serviço definido pela triagem`,
+      dica: `${plural(aDefinir, "chamado", "chamados")} sem serviço definido pela triagem: vão para a triagem humana`,
     });
   return (
     <Cartao titulo="Chamados por serviço" contexto={`SOS de hoje · ${plural(hoje.length, "chamado", "chamados")} na região`}>
