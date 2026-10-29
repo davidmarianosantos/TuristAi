@@ -1,12 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowRight, BedDouble, Car, Compass, Map, MapPin, Music, ShieldCheck, ShoppingBag, Star, UserRound, Utensils, type LucideIcon } from "lucide-react";
+import {
+  ArrowRight, BedDouble, Car, ChevronDown, Compass, Map, MapPin, Music, ShieldCheck, ShoppingBag, Star, UserRound, Utensils,
+  type LucideIcon,
+} from "lucide-react";
+import { useState } from "react";
 import type { Categoria, Estabelecimento, Traduzido } from "@/data/tipos";
+import type { Chave } from "@/i18n/textos";
+import { mostraCadastur } from "@/lib/cadastur";
 import { useIdioma } from "@/lib/idioma";
 import { distanciaKm, formatarDistancia } from "@/lib/mapa";
-import { Titulo } from "./Praias";
-import { CLASSE_TRILHO, ITEM_TRILHO, SetasTrilho, useTrilho } from "./Trilho";
+import { CLASSE_TRILHO, SetasTrilho, useTrilho } from "./Trilho";
 
 export const CATEGORIA: Record<Categoria, Traduzido> = {
   hotel: { pt: "Hotel", es: "Hotel", en: "Hotel" },
@@ -50,6 +55,7 @@ export function CartaoLugar({
   de,
   compacto = false,
   className = "w-[264px] shrink-0 snap-start",
+  aoAbrir,
 }: {
   lugar: Estabelecimento;
   de?: { lat: number; lng: number };
@@ -57,13 +63,25 @@ export function CartaoLugar({
   compacto?: boolean;
   /** largura e encaixe; o padrão serve às fileiras do assistente */
   className?: string;
+  /** quando vem, o cartão inteiro vira botão e abre os detalhes do lugar */
+  aoAbrir?(): void;
 }) {
   const { t, tr, idioma } = useIdioma();
   const dist = de ? formatarDistancia(distanciaKm(de, lugar), idioma) : null;
   const v = VISUAL[lugar.categoria];
   const Icone = v.icone;
   return (
-    <article className={`flex flex-col overflow-hidden rounded-[24px] bg-card ${className}`}>
+    <article
+      className={`relative flex flex-col overflow-hidden rounded-[24px] bg-card ${aoAbrir ? "toque transition-shadow has-[button:hover]:shadow-2" : ""} ${className}`}
+    >
+      {/* o botão cobre o cartão inteiro: tocar em qualquer ponto abre os detalhes */}
+      {aoAbrir && (
+        <button
+          onClick={aoAbrir}
+          aria-label={t("turistaDetalhes", { nome: lugar.nome })}
+          className="absolute inset-0 z-10 rounded-[24px] focus-visible:outline-offset-[-3px]"
+        />
+      )}
       <div
         className={`relative flex items-end justify-between overflow-hidden p-3.5 ${compacto ? "h-[96px]" : "h-[140px]"}`}
         style={{ background: v.fundo }}
@@ -93,7 +111,8 @@ export function CartaoLugar({
         <h3 className="text-[17px] font-bold leading-tight tracking-[-0.015em]">{lugar.nome}</h3>
         <p className="mb-3 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-2">
           {tr(CATEGORIA[lugar.categoria])}
-          {lugar.cadastur && (
+          {/* Cadastur só aparece onde a lei exige (hospedagem, agências, guias, transporte turístico) */}
+          {mostraCadastur(lugar) && (
             <span className="inline-flex items-center gap-1 font-semibold text-mata">
               <ShieldCheck size={13} strokeWidth={2.4} />
               {t("cadasturOk")}
@@ -117,48 +136,127 @@ export function CartaoLugar({
   );
 }
 
+/** O que o Selo quer dizer: no celular abre com um toque; no desktop fica sempre à vista, ao lado dos cartões. */
+function SobreSelo() {
+  const { t } = useIdioma();
+  const [aberto, setAberto] = useState(false);
+  const itens: [LucideIcon, Chave][] = [
+    [ShieldCheck, "turistaSeloCadastro"],
+    [Star, "turistaSeloAvaliacao"],
+  ];
+  return (
+    <div className="mt-4 rounded-[20px] bg-card/70 p-1.5 lg:mt-6 lg:bg-card lg:p-5">
+      <button
+        onClick={() => setAberto((x) => !x)}
+        aria-expanded={aberto}
+        aria-controls="sobre-selo"
+        className="toque flex min-h-11 w-full items-center gap-2.5 rounded-[14px] px-2.5 text-left text-[14px] font-bold lg:pointer-events-none lg:min-h-0 lg:px-0 lg:text-[15px]"
+      >
+        <Selo tamanho={24} />
+        {t("turistaSeloPergunta")}
+        <ChevronDown size={17} strokeWidth={2.4} aria-hidden className={`ml-auto text-ink-2 transition-transform lg:hidden ${aberto ? "rotate-180" : ""}`} />
+      </button>
+      <ul id="sobre-selo" className={`${aberto ? "flex" : "hidden"} flex-col gap-2.5 px-2.5 pb-2.5 pt-1.5 lg:flex lg:px-0 lg:pb-0 lg:pt-3`}>
+        {itens.map(([Icone, chave]) => (
+          <li key={chave} className="flex gap-2.5 text-[14px] leading-snug text-ink">
+            <Icone size={17} strokeWidth={2.2} className="mt-px shrink-0 text-cacau" aria-hidden />
+            {t(chave)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const FILTROS: { id: string; chave: Chave; categorias: Categoria[] }[] = [
+  { id: "comer", chave: "filtroComer", categorias: ["restaurante", "barraca"] },
+  { id: "passeios", chave: "turistaFiltroPasseios", categorias: ["receptivo", "condutor"] },
+  { id: "transporte", chave: "filtroTransporte", categorias: ["transporte"] },
+  { id: "hospedagem", chave: "filtroHospedagem", categorias: ["hotel", "pousada"] },
+  { id: "compras", chave: "turistaFiltroCompras", categorias: ["comercio"] },
+];
+
 export function Lugares({
   lugares,
   de,
   aoAbrirMapa,
+  aoAbrirLugar,
 }: {
   lugares: Estabelecimento[];
   de?: { lat: number; lng: number };
   aoAbrirMapa(): void;
+  aoAbrirLugar?(l: Estabelecimento): void;
 }) {
   const { t } = useIdioma();
-  const trilho = useTrilho(lugares.length);
+  const [filtro, setFiltro] = useState<string | null>(null);
+  // só os filtros que têm algum lugar recomendado
+  const disponiveis = FILTROS.filter((f) => lugares.some((l) => f.categorias.includes(l.categoria)));
+  const ativo = FILTROS.find((f) => f.id === filtro);
+  const lista = ativo ? lugares.filter((l) => ativo.categorias.includes(l.categoria)) : lugares;
+  const trilho = useTrilho(lista.length);
+
+  const escolher = (id: string | null) => {
+    setFiltro(id);
+    trilho.ref.current?.scrollTo({ left: 0 });
+  };
+  const chip = (ligado: boolean) =>
+    `toque h-9 shrink-0 rounded-full px-3.5 text-[13px] font-semibold ${ligado ? "bg-cacau text-white" : "bg-card text-ink hover:bg-surface"}`;
+
   return (
-    <section aria-labelledby="t-lugares" className="mt-10 rounded-[32px] bg-sand py-8 lg:mt-0 lg:px-8">
-      <Titulo
-        id="t-lugares"
-        descoberta
-        extra={
-          <>
-            <button
-              onClick={aoAbrirMapa}
-              className="toque flex h-9 items-center gap-1.5 rounded-full bg-card px-3.5 text-[13px] font-semibold text-cacau shadow-1 lg:hidden"
-            >
-              <Map size={15} strokeWidth={2.4} />
-              {t("mapa")}
-            </button>
-            <SetasTrilho trilho={trilho} />
-          </>
-        }
-      >
-        {t("lugaresSelo")}
-      </Titulo>
-      {lugares.length === 0 ? (
-        <p className="mx-5 rounded-[20px] bg-card p-4 text-[15px] text-ink-2 lg:mx-0">{t("semLugares")}</p>
-      ) : (
-        <ul ref={trilho.ref} className={CLASSE_TRILHO}>
-          {lugares.map((l) => (
-            <li key={l.id} className={`flex w-[264px] ${ITEM_TRILHO}`}>
-              <CartaoLugar lugar={l} de={de} className="w-full" />
-            </li>
-          ))}
-        </ul>
-      )}
+    <section
+      aria-labelledby="t-lugares"
+      className="mt-10 rounded-[32px] bg-sand py-8 lg:mt-0 lg:grid lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)] lg:gap-10 lg:p-8"
+    >
+      {/* coluna do nome e da explicação: no celular fica em cima */}
+      <div className="px-5 lg:px-0">
+        <div className="flex items-start justify-between gap-3">
+          <h2 id="t-lugares" className="font-display text-[26px] font-normal leading-tight text-cacau lg:text-[30px]">
+            {t("turistaRecomendados")}
+          </h2>
+          <button
+            onClick={aoAbrirMapa}
+            className="toque flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 text-[13px] font-semibold text-cacau shadow-1 lg:hidden"
+          >
+            <Map size={15} strokeWidth={2.4} />
+            {t("mapa")}
+          </button>
+        </div>
+        <p className="mt-1.5 max-w-[42ch] text-[15px] leading-snug text-ink-2">{t("turistaRecomendadosSub")}</p>
+        <SobreSelo />
+      </div>
+
+      <div className="mt-5 min-w-0 lg:mt-0">
+        <div className="mb-3 flex items-center justify-between gap-3 px-5 lg:px-0">
+          {disponiveis.length > 1 ? (
+            <div role="group" aria-label={t("turistaRecomendados")} className="sem-barra -my-1 flex gap-2 overflow-x-auto py-1">
+              <button onClick={() => escolher(null)} aria-pressed={!filtro} className={chip(!filtro)}>
+                {t("filtroTodos")}
+              </button>
+              {disponiveis.map((f) => (
+                <button key={f.id} onClick={() => escolher(f.id)} aria-pressed={filtro === f.id} className={chip(filtro === f.id)}>
+                  {t(f.chave)}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span />
+          )}
+          <SetasTrilho trilho={trilho} />
+        </div>
+        {lista.length === 0 ? (
+          <p className="mx-5 rounded-[20px] bg-card p-4 text-[15px] text-ink-2 lg:mx-0">{t("semLugares")}</p>
+        ) : (
+          <ul ref={trilho.ref} className={CLASSE_TRILHO}>
+            {lista.map((l) => (
+              // a coluna dos cartões é mais estreita que a página: dois por vez no desktop, três nas telas largas
+              <li key={l.id} className="flex w-[264px] shrink-0 snap-start lg:w-[calc((100%-1rem)/2)] xl:w-[calc((100%-2rem)/3)]">
+                <CartaoLugar lugar={l} de={de} className="w-full" aoAbrir={aoAbrirLugar ? () => aoAbrirLugar(l) : undefined} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="px-5 lg:hidden">
         <button
           onClick={aoAbrirMapa}

@@ -23,7 +23,7 @@ export function AppTurista() {
   return (
     <RepositorioProvider>
       <IdiomaProvider inicial={idioma}>
-        <TelaTurista origemSlug={params.get("origem")} forcarConvite={params.get("whatsapp") === "1"} />
+        <TelaTurista origemSlug={params.get("origem")} cidadeId={params.get("cidade")} forcarConvite={params.get("whatsapp") === "1"} />
       </IdiomaProvider>
     </RepositorioProvider>
   );
