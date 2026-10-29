@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
 import { useIdioma } from "@/lib/idioma";
 import { hrefChat } from "@/lib/rotas";
 import { Folha } from "@/components/ui/Folha";
+import { LogoWhatsApp, VERDE_WHATSAPP } from "@/components/ui/LogoWhatsApp";
 
 const CHAVE_CONVITE = "costa-cacau:convite-whatsapp";
 
@@ -38,17 +38,18 @@ export function ConviteWhatsApp({
     <Folha aberta={aberto} aoFechar={aoFechar} titulo={t("conviteTitulo")} rotuloFechar={t("fechar")}>
       <div className="flex flex-col gap-3 px-5 pb-[max(20px,env(safe-area-inset-bottom))]">
         <p className="flex items-start gap-3 text-[15px] leading-snug text-ink-2">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-ok-bg text-ok">
-            <MessageCircle size={22} strokeWidth={2.2} />
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-full" style={{ background: VERDE_WHATSAPP }}>
+            <LogoWhatsApp tamanho={28} />
           </span>
           {t("conviteTexto")}
         </p>
         <Link
           href={hrefChat({ idioma, origem: origemSlug })}
           onClick={aoFechar}
-          className="toque mt-2 flex h-[54px] items-center justify-center gap-2 rounded-full bg-ok text-[16px] font-bold text-white shadow-2"
+          className="toque mt-2 flex h-[54px] items-center justify-center gap-2 rounded-full text-[16px] font-bold text-white shadow-2"
+          style={{ background: VERDE_WHATSAPP }}
         >
-          <MessageCircle size={20} strokeWidth={2.4} />
+          <LogoWhatsApp tamanho={22} />
           {t("irWhatsapp")}
         </Link>
         <button onClick={aoFechar} className="toque h-12 rounded-full text-[15px] font-semibold text-ink-2 hover:bg-surface">
@@ -59,7 +60,7 @@ export function ConviteWhatsApp({
   );
 }
 
-/** Botão fixo acima da barra do SOS, no canto direito; no desktop, fica fora da coluna do mapa. */
+/** Botão fixo acima da barra do SOS, no canto direito (celular e tablet). No desktop vira o LinkWhatsAppLateral. */
 export function BotaoWhatsApp({ origemSlug }: { origemSlug?: string | null }) {
   const { t, idioma } = useIdioma();
   return (
@@ -67,9 +68,26 @@ export function BotaoWhatsApp({ origemSlug }: { origemSlug?: string | null }) {
       href={hrefChat({ idioma, origem: origemSlug })}
       aria-label={t("abrirChat")}
       title={t("abrirChat")}
-      className="toque fixed bottom-[calc(max(12px,env(safe-area-inset-bottom))+76px)] right-4 z-20 flex size-14 items-center justify-center rounded-full bg-ok text-white shadow-3 lg:right-[calc(min(40vw,560px)+16px)]"
+      className="toque fixed bottom-[calc(max(12px,env(safe-area-inset-bottom))+76px)] right-4 z-20 flex size-14 items-center justify-center rounded-full text-white shadow-3 lg:hidden"
+      style={{ background: VERDE_WHATSAPP }}
     >
-      <MessageCircle size={26} strokeWidth={2.2} />
+      <LogoWhatsApp tamanho={30} />
+    </Link>
+  );
+}
+
+/** No desktop, o caminho para o WhatsApp fica na barra do topo, ao lado do SOS. */
+export function LinkWhatsAppTopo({ origemSlug }: { origemSlug?: string | null }) {
+  const { t, idioma } = useIdioma();
+  return (
+    <Link
+      href={hrefChat({ idioma, origem: origemSlug })}
+      aria-label={t("abrirChat")}
+      className="toque flex h-10 items-center gap-2 rounded-full px-4 text-[14px] font-bold text-white shadow-1"
+      style={{ background: VERDE_WHATSAPP }}
+    >
+      <LogoWhatsApp tamanho={20} />
+      WhatsApp
     </Link>
   );
 }

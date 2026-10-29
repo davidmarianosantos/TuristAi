@@ -10,7 +10,7 @@ Contexto do projeto para o Claude Code. Atualizado em 28/10/2026.
 - Responda em português.
 - Avance **um passo por vez** e confirme com a equipe antes de seguir. Não pule etapas (por exemplo, não escreva plano de implementação antes de o modelo de dados estar fechado).
 - Ao propor decisões, dê 2 ou 3 opções com uma recomendação.
-- Dados de exemplo são fictícios e marcados `[DEMO]`. Não invente estabelecimentos reais nem números de pesquisa.
+- Dados de exemplo: estabelecimentos fictícios com nomes inventados (sem marcação `[DEMO]`) e fotos ilustrativas de licença livre; atrativos são lugares públicos reais da região. Não use nomes de estabelecimentos reais nem invente números de pesquisa.
 - Hackathon presencial na UESC, 28 e 29/10/2026, com submissão em 29/10 até 12h: prefira o mais simples que funcione na demo.
 
 ---

@@ -15,4 +15,4 @@ npm run dev
 - WhatsApp simulado: <http://localhost:3000/chat?lang=es&origem=pousada-mare>
 - Ensaio da demo (publica o alerta da Concha em outra aba): <http://localhost:3000/ensaio>
 
-Todos os dados são fictícios e marcados `[DEMO]`.
+Os estabelecimentos são fictícios (nomes inventados); os atrativos são lugares reais da região. As fotos têm licença livre e os créditos ficam no rodapé da tela do turista.
