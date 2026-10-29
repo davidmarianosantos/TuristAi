@@ -16,7 +16,7 @@ Cada área tem dona. Mexa só na sua área; na área da outra pessoa, peça ante
 | WhatsApp simulado (`/chat`) | David | `web/src/components/chat/`, `web/src/app/chat/`, `web/src/lib/chatbot/` |
 | Lógica do turista | David | `web/src/lib/assistente.ts`, `triagem.ts`, `idioma.tsx`, `localizacao.ts`, `mapa.ts`, `rotas.ts` |
 | Ensaio da demo (`/ensaio`) | David | `web/src/app/ensaio/` |
-| Painéis novos (`/gestao`, `/hotel`, `/central`) | colega (preencher o nome) | criar `web/src/app/<painel>/` e `web/src/components/<painel>/` |
+| Painéis novos (`/gestao`, `/hotel`, `/central`) | Cibelle (CibelleSousa) | criar `web/src/app/<painel>/` e `web/src/components/<painel>/` |
 
 **Funcionalidade nova = pasta nova.** Um painel novo vive em `web/src/app/gestao/` + `web/src/components/gestao/` (ou `hotel`, `central`), e nunca dentro de `components/turista/`. Se precisar de um componente da outra área, **importe**, não copie nem altere.
 
@@ -38,7 +38,7 @@ Se uma mudança num contrato for inevitável, ela vai **num PR separado e pequen
 
 ## 3. Git
 
-- **Ninguém commita direto na `main`.** Cada um trabalha numa branch própria: `david/<assunto>` ou `<nome>/<assunto>` (ex.: `ana/painel-gestao`).
+- **Ninguém commita direto na `main`.** Cada um trabalha numa branch própria: `david/<assunto>` ou `cibelle/<assunto>` (ex.: `cibelle/painel-gestao`).
 - Commits pequenos, com mensagem dizendo o que mudou.
 - Antes de começar o dia e antes de abrir PR: `git pull --rebase origin main` na sua branch.
 - Tudo entra na `main` por Pull Request. Quem não escreveu o PR dá uma olhada antes do merge (2 minutos bastam: a tela da outra pessoa ainda abre?).
