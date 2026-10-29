@@ -5,6 +5,7 @@ import { repositorio, type Ensaio, type Repositorio } from "@/data/repositorio";
 import type { Alerta, ChamadoSOS, Estabelecimento, Idioma, Municipio, SessoesEEntregas, Severidade } from "@/data/tipos";
 import { calcularAlcance, formatarTempo } from "./alcance";
 import { AlertasAtivos } from "./AlertasAtivos";
+import { Balneabilidade } from "./Balneabilidade";
 import { Cabecalho, REGIAO } from "./Cabecalho";
 import { Cobertura } from "./Cobertura";
 import { GraficoAlcanceIdioma, GraficoChamadosServico, GraficoSelosCategoria } from "./Graficos";
@@ -154,6 +155,7 @@ export function AppGestao() {
   const nomeEscopo = naRegiao ? "Costa do Cacau" : nomeMunicipio(escopo);
   const noEscopo = naRegiao ? "na Costa do Cacau" : `em ${nomeEscopo}`;
   const alertasEscopo = naRegiao ? alertas : alertas.filter((a) => a.municipioId === escopo);
+  const praiasEscopo = naRegiao ? praias : praias.filter((p) => p.municipio.id === escopo);
   const ultimoAlerta = alertasEscopo.reduce<Alerta | null>((u, a) => (!u || a.criadoEm > u.criadoEm ? a : u), null);
   const seloEscopo = naRegiao ? comSelo : comSelo.filter((e) => e.municipioId === escopo);
   // implantado = já tem dados no repositório (praias do dia ou Estabelecimentos com Selo)
@@ -174,10 +176,11 @@ export function AppGestao() {
         escopo={escopo}
         aoMudarEscopo={setEscopo}
       />
-      <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
-        {/* o SOS fica numa coluna própria, sempre visível: é o que a banca precisa ver acontecendo */}
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-          <div className="grid min-w-0 gap-4">
+      <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
+        {/* Duas colunas de altura parecida: operação à esquerda, acompanhamento ao vivo à direita.
+            A Cobertura fica embaixo, na largura toda, porque é o bloco mais alto e desequilibrava a grade. */}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
+          <div className="grid min-w-0 content-start gap-4">
             <section aria-label="Indicadores" className="grid items-stretch gap-4 lg:grid-cols-3">
               <IndicadorAlcance
                 alerta={ultimoAlerta}
@@ -195,7 +198,7 @@ export function AppGestao() {
                 implantado={implantado}
               />
             </section>
-            <section aria-label="Operação" className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+            <section aria-label="Operação" className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
               <PublicarAlerta praias={praias} aoPublicar={(a) => repo.publicarAlerta(a)} />
               <AlertasAtivos
                 alertas={alertasEscopo}
@@ -212,7 +215,7 @@ export function AppGestao() {
                 )}
               />
             </section>
-            <section aria-label="Gráficos" className="grid items-stretch gap-4 lg:grid-cols-3">
+            <section aria-label="Gráficos" className="grid items-stretch gap-4 lg:grid-cols-2">
               <GraficoAlcanceIdioma
                 alerta={ultimoAlerta}
                 dados={dados}
@@ -221,7 +224,6 @@ export function AppGestao() {
                 noEscopo={noEscopo}
                 nomeMunicipio={nomeMunicipio}
               />
-              <GraficoChamadosServico chamados={chamados} agora={relogio ?? agora} />
               <GraficoSelosCategoria
                 comSelo={seloEscopo}
                 nomeEscopo={nomeEscopo}
@@ -229,9 +231,16 @@ export function AppGestao() {
                 implantado={implantado}
               />
             </section>
-              <Cobertura situacoes={situacoes} escopo={escopo} aoEscolher={setEscopo} />
           </div>
-          <PainelSOS chamados={chamados} origens={origens} agoraMs={agoraMs} />
+          {/* acompanhamento ao vivo: o que está acontecendo agora na região */}
+          <div className="grid min-w-0 content-start gap-4">
+            <PainelSOS chamados={chamados} origens={origens} agoraMs={agoraMs} />
+            <Balneabilidade praias={praiasEscopo} nomeEscopo={nomeEscopo} />
+            <GraficoChamadosServico chamados={chamados} agora={relogio ?? agora} />
+          </div>
+        </div>
+        <div className="mt-4">
+          <Cobertura situacoes={situacoes} escopo={escopo} aoEscolher={setEscopo} />
         </div>
         <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-(--ba-linha) pt-4 text-[12px] text-(--ba-texto-2)">
           <p>

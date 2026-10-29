@@ -41,7 +41,9 @@ export function Cobertura({
       titulo="Cobertura regional"
       contexto={`${ativos.length} de ${situacoes.length} municípios implantados · implantação em ondas`}
     >
-      <div className="grid gap-6 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+      {/* em tela larga as duas listas ficam lado a lado do mapa: esticar uma só deixava
+          o nome do município e os números separados por um vão de mil pixels */}
+      <div className="grid gap-6 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,1fr)]">
         <figure className="m-0">
           <svg
             viewBox={`0 0 ${LARGURA} ${ALTURA}`}
@@ -127,8 +129,8 @@ export function Cobertura({
           </figcaption>
         </figure>
 
-        <div className="flex min-w-0 flex-col gap-5">
-          <div>
+        <div className="flex min-w-0 flex-col gap-5 xl:contents">
+          <div className="min-w-0">
             <h3 className="text-[13px] font-semibold uppercase tracking-[0.04em] text-(--ba-texto-2)">
               Implantados · {ativos.length}
             </h3>
@@ -156,7 +158,7 @@ export function Cobertura({
               ))}
             </ul>
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className="text-[13px] font-semibold uppercase tracking-[0.04em] text-(--ba-texto-2)">
               Aguardando implantação · {aguardando.length}
             </h3>

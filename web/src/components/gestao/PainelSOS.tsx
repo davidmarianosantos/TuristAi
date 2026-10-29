@@ -114,10 +114,11 @@ export function PainelSOS({
   // "estrangeiros" é o que o dado sustenta; dizer "traduzidos pela IA" seria falso sem chave de LLM
   const estrangeiros = hoje.filter((c) => c.idiomaOriginal !== "pt").length;
 
+  // o teto deixa a lista rolar por dentro em vez de empurrar os cartões de baixo
   return (
     <section
       aria-label="SOS ao vivo"
-      className="g-cartao flex max-h-[calc(100dvh-2rem)] min-w-0 flex-col p-5 lg:sticky lg:top-4"
+      className="g-cartao flex max-h-[620px] min-w-0 flex-col p-5"
     >
       <header>
         <div className="flex items-start justify-between gap-3">
