@@ -107,5 +107,5 @@ export default function Mapa({
     };
   }, [pinos]);
 
-  return <div ref={el} className="h-full w-full" />;
+  return <div ref={el} className="isolate h-full w-full" />;
 }

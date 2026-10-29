@@ -9,8 +9,9 @@ import { useIdioma } from "@/lib/idioma";
 import { Bandeira } from "@/components/ui/Bandeira";
 import foto from "../../../public/img/itacarezinho.jpg";
 import logo from "../../../public/img/logo-turistai.png";
+import mascote from "../../../public/img/mascote.png";
 
-const NOMES: Record<Idioma, string> = { pt: "Português", es: "Español", en: "English" };
+export const NOMES_IDIOMA: Record<Idioma, string> = { pt: "Português", es: "Español", en: "English" };
 
 function SeletorIdioma({ vidro = false }: { vidro?: boolean }) {
   const { idioma, setIdioma, t } = useIdioma();
@@ -35,7 +36,7 @@ function SeletorIdioma({ vidro = false }: { vidro?: boolean }) {
         onClick={() => setAberto((x) => !x)}
         aria-haspopup="listbox"
         aria-expanded={aberto}
-        aria-label={`${t("idioma")}: ${NOMES[idioma]}`}
+        aria-label={`${t("idioma")}: ${NOMES_IDIOMA[idioma]}`}
         className={`toque flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-bold uppercase tracking-wide ${
           vidro
             ? "border border-white/30 bg-white/15 text-white backdrop-blur-md hover:bg-white/25"
@@ -52,7 +53,7 @@ function SeletorIdioma({ vidro = false }: { vidro?: boolean }) {
           aria-label={t("idioma")}
           className="aparece absolute right-0 top-[calc(100%+8px)] z-40 w-48 origin-top-right overflow-hidden rounded-[18px] bg-card p-1.5 text-ink shadow-3"
         >
-          {(Object.keys(NOMES) as Idioma[]).map((i) => (
+          {(Object.keys(NOMES_IDIOMA) as Idioma[]).map((i) => (
             <li key={i}>
               <button
                 role="option"
@@ -64,7 +65,7 @@ function SeletorIdioma({ vidro = false }: { vidro?: boolean }) {
                 }}
                 className="flex h-11 w-full items-center justify-between rounded-[12px] px-3 text-left text-[15px] font-semibold hover:bg-surface"
               >
-                {NOMES[i]}
+                {NOMES_IDIOMA[i]}
                 {i === idioma && <Check size={18} strokeWidth={2.6} className="text-blue" />}
               </button>
             </li>
@@ -88,11 +89,17 @@ export function Cabecalho({
   origem,
   praias,
   comFoto,
+  acoes,
+  busca,
 }: {
   cidade: string;
   origem?: string | null;
   praias: PraiaHoje[];
   comFoto: boolean;
+  /** só no desktop: WhatsApp e SOS na barra do topo, como num site (no celular eles flutuam no rodapé) */
+  acoes?: React.ReactNode;
+  /** só no desktop: a barra de pergunta ao assistente dentro da foto */
+  busca?: React.ReactNode;
 }) {
   const { t, idioma } = useIdioma();
   const hero = useRef<HTMLElement>(null);
@@ -119,25 +126,26 @@ export function Cabecalho({
       {/* barra compacta que aparece ao rolar */}
       <div
         aria-hidden={!compacto}
-        className={`fixed inset-x-0 top-0 z-30 border-b border-line/70 bg-card/80 backdrop-blur-xl transition-transform duration-300 ease-[var(--ease-out)] lg:right-[min(40vw,560px)] ${
+        className={`fixed inset-x-0 top-0 z-30 border-b border-line/70 bg-card/80 backdrop-blur-xl transition-transform duration-300 ease-[var(--ease-out)] ${
           compacto ? "translate-y-0" : "-translate-y-full"
         }`}
       >
-        <div className="mx-auto flex h-[60px] max-w-[720px] items-center justify-between px-5 pt-[env(safe-area-inset-top)] lg:px-10">
+        <div className="mx-auto flex h-[60px] max-w-[720px] items-center justify-between px-5 pt-[env(safe-area-inset-top)] lg:max-w-[1280px] lg:px-8">
           <span className="flex items-center gap-2.5 text-[16px] font-bold tracking-[-0.02em]">
             {/* só o mascote: recorte do lado esquerdo da logo */}
-            <span aria-hidden className="block h-10 w-[26px] overflow-hidden">
-              <Image src={logo} alt="" priority className="h-10 w-auto max-w-none" />
-            </span>
+            <Image src={mascote} alt="" aria-hidden priority className="h-10 w-auto shrink-0" />
             {cidade}
           </span>
-          <SeletorIdioma />
+          <div className="flex items-center gap-2">
+            {acoes && <div className="hidden items-center gap-2 lg:flex">{acoes}</div>}
+            <SeletorIdioma />
+          </div>
         </div>
       </div>
 
       <header
         ref={hero}
-        className="relative isolate flex min-h-[440px] flex-col overflow-hidden rounded-b-[32px] bg-field text-white lg:m-4 lg:mb-0 lg:min-h-[480px] lg:rounded-[32px]"
+        className="relative isolate flex min-h-[440px] flex-col overflow-hidden rounded-b-[32px] bg-field text-white lg:m-4 lg:mb-0 lg:min-h-[600px] lg:rounded-[32px]"
       >
         {comFoto ? (
           <Image
@@ -145,10 +153,18 @@ export function Cabecalho({
             alt=""
             fill
             priority
-            sizes="(min-width: 1024px) 60vw, 100vw"
+            sizes="100vw"
             className="-z-10 object-cover object-[center_60%] motion-safe:animate-[zoom-lento_2.4s_var(--ease-out)_both]"
           />
         ) : null}
+        {/* no desktop o texto fica à esquerda: um véu lateral garante leitura sobre a areia clara da foto */}
+        {comFoto && (
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-10 hidden lg:block"
+            style={{ background: "linear-gradient(90deg, rgba(6,32,44,0.62) 0%, rgba(6,32,44,0.28) 42%, rgba(6,32,44,0) 62%)" }}
+          />
+        )}
         <div
           aria-hidden
           className="absolute inset-0 -z-10"
@@ -159,24 +175,24 @@ export function Cabecalho({
           }}
         />
 
-        <div className="flex items-center justify-between px-5 pt-[max(18px,env(safe-area-inset-top))] lg:px-8 lg:pt-6">
+        <div className="flex items-center justify-between px-5 pt-[max(18px,env(safe-area-inset-top))] lg:mx-auto lg:w-full lg:max-w-[1280px] lg:px-8 lg:pt-6">
           <Image
             src={logo}
             alt="TuristAí"
             priority
             className="h-[64px] w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)] lg:h-[80px]"
           />
-          <SeletorIdioma vidro />
+          <div className="flex items-center gap-2">
+            {acoes && <div className="hidden items-center gap-2 lg:flex">{acoes}</div>}
+            <SeletorIdioma vidro />
+          </div>
         </div>
 
-        <div className="cascata mt-auto px-5 pb-12 lg:px-8 lg:pb-10">
-          {origem && (
-            <p className="mb-3 inline-flex rounded-full bg-white/12 px-3 py-1.5 text-[13px] font-medium text-field-ink backdrop-blur-md">
-              {t("boasVindas", { lugar: origem })}
-            </p>
-          )}
-          <h1 className="font-display text-[40px] font-normal leading-[1.05] lg:text-[60px]">{t("hojeEm", { cidade })}</h1>
-          <p className="mt-2 text-[15px] font-medium text-field-ink first-letter:uppercase">{data}</p>
+        {/* no desktop, a direita fica livre para o alerta do dia, que a TelaTurista posiciona por cima da foto */}
+        <div className="cascata mt-auto px-5 pb-12 lg:mx-auto lg:w-full lg:max-w-[1280px] lg:px-8 lg:pb-14 lg:pt-10 lg:pr-[500px] xl:pr-[540px]">
+          <h1 className="font-display text-[40px] font-normal leading-[1.05] lg:text-[52px] xl:text-[64px]">{t("hojeEm", { cidade })}</h1>
+          <p className="mt-2 text-[15px] font-medium text-field-ink first-letter:uppercase lg:text-[16px]">{data}</p>
+          {origem && <p className="mt-0.5 text-[14px] text-field-ink/85 lg:text-[15px]">{t("hotelOrigem", { lugar: origem })}</p>}
           <div className="mt-5 flex flex-wrap gap-2">
             <Chip>
               <Sun size={16} strokeWidth={2.4} className="text-accent" />
@@ -193,6 +209,7 @@ export function Cabecalho({
               </Chip>
             )}
           </div>
+          {busca && <div className="mt-8 hidden max-w-[600px] lg:block">{busca}</div>}
         </div>
       </header>
     </>

@@ -2,19 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MUNICIPIO_PADRAO } from "@/data/seed";
-import type { Alerta, Estabelecimento, Municipio, PraiaHoje, Sessao } from "@/data/tipos";
+import type { Alerta, Atrativo, Estabelecimento, Municipio, PraiaHoje, Sessao } from "@/data/tipos";
 import { useIdioma } from "@/lib/idioma";
 import { distanciaKm } from "@/lib/mapa";
 import { Folha } from "@/components/ui/Folha";
 import { Alertas } from "./Alertas";
 import { AssistenteCampo, FolhaAssistente } from "./Assistente";
+import { Atrativos, FolhaAtrativo } from "./Atrativos";
 import { Cabecalho } from "./Cabecalho";
 import { Lugares } from "./Lugares";
 import { PainelMapa } from "./PainelMapa";
 import { Praias, Titulo } from "./Praias";
 import { useRepositorio } from "./RepositorioContext";
-import { FolhaSOS, RodapeSOS, Telefones } from "./SOS";
-import { BotaoWhatsApp, ConviteWhatsApp, deveMostrarConvite, marcarConviteVisto } from "./WhatsApp";
+import { FolhaCreditos, Rodape } from "./Rodape";
+import { BotaoSOSTopo, FolhaSOS, RodapeSOS } from "./SOS";
+import { BotaoWhatsApp, ConviteWhatsApp, deveMostrarConvite, LinkWhatsAppTopo, marcarConviteVisto } from "./WhatsApp";
 
 type Dados = {
   municipio: Municipio;
@@ -22,6 +24,8 @@ type Dados = {
   sessao: Sessao;
   praias: PraiaHoje[];
   lugares: Estabelecimento[];
+  atrativos: Atrativo[];
+  municipios: Municipio[];
 };
 
 function Esqueleto() {
@@ -46,6 +50,8 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
   const [sos, setSos] = useState(false);
   const [mapa, setMapa] = useState(false);
   const [convite, setConvite] = useState(false);
+  const [atrativo, setAtrativo] = useState<Atrativo | null>(null);
+  const [creditos, setCreditos] = useState(false);
 
   const secaoAlertas = useRef<HTMLElement>(null);
   const alertasVisiveis = useRef(true);
@@ -57,11 +63,13 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
     (async () => {
       const origem = origemSlug ? await repo.estabelecimentoPorSlug(origemSlug) : null;
       const municipio = await repo.municipio(origem?.municipioId ?? MUNICIPIO_PADRAO);
-      const [sessao, praias, lugares, ativos] = await Promise.all([
+      const [sessao, praias, lugares, ativos, atrativos, municipios] = await Promise.all([
         repo.criarSessao({ idioma, canal: "qr", origemId: origem?.id }),
         repo.praiasHoje(municipio.id),
         repo.estabelecimentosComSelo(municipio.id),
         repo.alertasAtivos(municipio.id),
+        repo.atrativos(municipio.id),
+        repo.municipios(),
       ]);
       if (!vivo) return;
       conhecidos.current = new Set(ativos.map((a) => a.id));
@@ -71,7 +79,7 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
       const vitrine = lugares
         .filter((l) => l.id !== origem?.id)
         .sort((a, b) => distanciaKm(de, a) - distanciaKm(de, b));
-      setDados({ municipio, origem, sessao, praias, lugares: vitrine });
+      setDados({ municipio, origem, sessao, praias, lugares: vitrine, atrativos, municipios });
       // convite para o WhatsApp: logo depois de a tela aparecer, uma vez por sessão
       if (deveMostrarConvite(forcarConvite)) {
         setTimeout(() => {
@@ -132,7 +140,7 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
             secaoAlertas.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             setPilula(false);
           }}
-          className="aparece toque fixed left-1/2 top-[max(12px,env(safe-area-inset-top))] z-30 flex h-11 -translate-x-1/2 items-center gap-2 rounded-full bg-danger px-5 text-[14px] font-extrabold text-white shadow-[0_6px_20px_rgba(200,32,26,0.35)] lg:left-[calc((100%-min(40vw,560px))/2)]"
+          className="aparece toque fixed left-1/2 top-[max(12px,env(safe-area-inset-top))] z-30 flex h-11 -translate-x-1/2 items-center gap-2 rounded-full bg-danger px-5 text-[14px] font-extrabold text-white shadow-[0_6px_20px_rgba(200,32,26,0.35)] "
         >
           <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
             <path d="M6 11V1M1.5 5.5L6 1l4.5 4.5" stroke="currentColor" strokeWidth="2" fill="none" />
@@ -141,8 +149,7 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
         </button>
       )}
 
-      <div className="lg:flex lg:items-start">
-        <main className="min-w-0 flex-1 pb-[calc(160px+env(safe-area-inset-bottom))]">
+      <main className="min-w-0">
           {!dados ? (
             <>
               <div className="min-h-[440px] rounded-b-[32px] bg-field lg:m-4 lg:rounded-[32px]" />
@@ -150,37 +157,49 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
             </>
           ) : (
             <>
-              <Cabecalho
-                cidade={dados.municipio.nome}
-                origem={dados.origem?.nome}
-                praias={dados.praias}
-                comFoto={dados.municipio.id === "itacare"}
-              />
-              <div className="mx-auto max-w-[640px] lg:max-w-[760px] lg:px-10">
-                <Alertas ref={secaoAlertas} alertas={alertas} novos={novos} />
+              {/* o alerta do dia: no celular, sobe por cima da borda da foto; no desktop, mora dentro dela, à direita */}
+              <div className="relative">
+                <Cabecalho
+                  cidade={dados.municipio.nome}
+                  origem={dados.origem?.nome}
+                  praias={dados.praias}
+                  comFoto={dados.municipio.id === "itacare"}
+                  acoes={
+                    <>
+                      <LinkWhatsAppTopo origemSlug={origemSlug} />
+                      <BotaoSOSTopo aoAbrir={() => setSos(true)} />
+                    </>
+                  }
+                  busca={<AssistenteCampo aoPerguntar={abrirAssistente} sufixo="-busca" variante="busca" />}
+                />
+                <div className="mx-auto max-w-[640px] lg:contents">
+                  <Alertas ref={secaoAlertas} alertas={alertas} novos={novos} />
+                </div>
+              </div>
+
+              <div className="mx-auto max-w-[640px] lg:max-w-[1280px] lg:px-8">
                 <Praias praias={dados.praias} />
-                <AssistenteCampo aoPerguntar={abrirAssistente} />
-                <Lugares lugares={dados.lugares} de={de} aoAbrirMapa={() => setMapa(true)} />
-                <section aria-labelledby="t-tel" className="pt-10">
-                  <Titulo id="t-tel">{t("telefones")}</Titulo>
-                  <div className="px-4 lg:px-0">
-                    <Telefones />
+                <div className="lg:hidden">
+                  <AssistenteCampo aoPerguntar={abrirAssistente} />
+                </div>
+                <Atrativos atrativos={dados.atrativos} de={de} aoAbrir={setAtrativo} />
+                {/* desktop: cada seção é uma linha só (setas no título) e, abaixo, o mapa em faixa larga */}
+                <div className="lg:mt-14">
+                  <Lugares lugares={dados.lugares} de={de} aoAbrirMapa={() => setMapa(true)} />
+                </div>
+                <section aria-labelledby="t-mapa" className="hidden lg:block lg:pt-14">
+                  <Titulo id="t-mapa">{t("mapa")}</Titulo>
+                  {/* isolate: as camadas do Leaflet (z-index 400+) não passam por cima da barra fixa do topo */}
+                  <div className="isolate h-[480px] overflow-hidden rounded-[32px] bg-card shadow-2">
+                    <PainelMapa lugares={dados.lugares} praias={dados.praias} centro={dados.municipio} de={de} />
                   </div>
                 </section>
-                <p className="px-5 pt-8 text-[12px] text-ink-2 lg:px-0">{t("creditoFoto")}</p>
               </div>
             </>
           )}
-        </main>
+      </main>
 
-        {dados && (
-          <aside aria-label={t("mapa")} className="sticky top-0 hidden h-svh w-[min(40vw,560px)] shrink-0 py-4 pr-4 lg:block">
-            <div className="h-full overflow-hidden rounded-[32px] shadow-2">
-              <PainelMapa lugares={dados.lugares} praias={dados.praias} centro={dados.municipio} de={de} />
-            </div>
-          </aside>
-        )}
-      </div>
+      {dados && <Rodape municipios={dados.municipios} atual={dados.municipio.id} aoAbrirCreditos={() => setCreditos(true)} />}
 
       <BotaoWhatsApp origemSlug={origemSlug} />
       <RodapeSOS aoAbrir={() => setSos(true)} />
@@ -191,6 +210,7 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
             aberta={assistente.aberta}
             perguntaInicial={assistente.pergunta}
             municipioId={dados.municipio.id}
+            origemId={dados.origem?.id}
             aoFechar={() => setAssistente((a) => ({ ...a, aberta: false }))}
             aoPedirSOS={() => {
               setAssistente((a) => ({ ...a, aberta: false }));
@@ -202,6 +222,8 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
           <Folha aberta={mapa} aoFechar={() => setMapa(false)} titulo={t("mapa")} rotuloFechar={t("voltar")} telaCheia>
             {mapa && <PainelMapa lugares={dados.lugares} praias={dados.praias} centro={dados.municipio} de={de} />}
           </Folha>
+          <FolhaAtrativo atrativo={atrativo} de={de} cidade={dados.municipio.nome} aoFechar={() => setAtrativo(null)} />
+          <FolhaCreditos aberta={creditos} aoFechar={() => setCreditos(false)} />
         </>
       )}
     </div>
