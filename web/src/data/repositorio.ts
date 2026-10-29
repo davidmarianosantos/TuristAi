@@ -215,11 +215,20 @@ export function criarRepositorioMock(): Repositorio & Ensaio {
       return novo;
     },
     async registrarPresenca(sessao, municipioId, alertaIds, idioma) {
-      // relê antes de gravar: outra aba pode ter acabado de gravar a Entrega dela
-      estado = lerEstado();
+      // une o gravado com o que esta aba já sabe: outra aba pode ter acabado de gravar a Entrega dela, e se a
+      // gravação desta aba falhou (cota cheia, armazenamento bloqueado) a memória evita gravar e avisar sem parar
+      let temDisco = false;
+      try {
+        temDisco = localStorage.getItem(CHAVE) != null;
+      } catch {}
+      const base = temDisco ? lerEstado() : estado;
+      const sessoes = [...(base.sessoes ?? [])];
+      for (const s of estado.sessoes ?? []) if (!sessoes.some((x) => x.id === s.id)) sessoes.push(s);
+      const entregas = [...(base.entregas ?? [])];
+      for (const e of estado.entregas ?? [])
+        if (!entregas.some((x) => x.sessaoId === e.sessaoId && x.alertaId === e.alertaId)) entregas.push(e);
+      estado = { ...base, sessoes, entregas };
       const em = new Date().toISOString();
-      const sessoes = estado.sessoes ?? [];
-      const entregas = estado.entregas ?? [];
       const novaSessao = !sessoes.some((s) => s.id === sessao.id);
       const novas: Entrega[] = alertaIds
         .filter((alertaId) => !entregas.some((e) => e.sessaoId === sessao.id && e.alertaId === alertaId))
