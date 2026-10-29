@@ -14,3 +14,9 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Skills locais de cada pessoa (instaladas por ferramenta, não são do projeto)
+.agents/
+
+# Gerado pelo next dev
+web/AGENTS.md

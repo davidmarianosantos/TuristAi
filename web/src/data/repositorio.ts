@@ -3,11 +3,15 @@ import type {
   Alerta,
   Atrativo,
   ChamadoSOS,
+  Entrega,
   Estabelecimento,
   EventoChamado,
+  Idioma,
   Municipio,
   PraiaHoje,
   Sessao,
+  SessaoAberta,
+  SessoesEEntregas,
   Severidade,
   StatusChamado,
 } from "./tipos";
@@ -40,6 +44,13 @@ export interface Repositorio {
     mudanca: Partial<Omit<ChamadoSOS, "id" | "sessaoId" | "criadoEm">>,
     evento?: Omit<EventoChamado, "em">,
   ): Promise<ChamadoSOS>;
+  // ---- Painel da gestão: Alcance dos alertas (docs/adr/0002) ----
+  /** grava a Sessão (se nova) e uma Entrega por Alerta ainda não entregue a ela; sem novidade, não grava nem avisa */
+  registrarPresenca(sessao: Sessao, municipioId: string, alertaIds: string[], idioma: Idioma): Promise<void>;
+  sessoesEEntregas(): Promise<SessoesEEntregas>;
+  aoMudarSessoesEEntregas(cb: (d: SessoesEEntregas) => void): () => void;
+  /** tira o Alerta dos ativos agora (validoAte = agora); ele continua no estado */
+  encerrarAlerta(id: string): Promise<void>;
 }
 
 /** Ações de ensaio da demo (a tela /ensaio usa para preparar e reiniciar a apresentação). */
@@ -50,9 +61,12 @@ export interface Ensaio {
   ultimoChamado(): ChamadoSOS | null;
   aoQualquerChamado(cb: (c: ChamadoSOS) => void): () => void;
   limparChamados(): void;
+  /** zera Sessões e Entregas; não mexe em alertas nem chamados */
+  limparSessoes(): void;
 }
 
-type Estado = { alertas: Alerta[]; chamados: ChamadoSOS[] };
+// sessoes e entregas são opcionais: o estado gravado antes do painel da gestão não os tem
+type Estado = { alertas: Alerta[]; chamados: ChamadoSOS[]; sessoes?: SessaoAberta[]; entregas?: Entrega[] };
 type Mensagem = { tipo: "estado" };
 
 const CHAVE = "costa-cacau:estado";
@@ -200,6 +214,46 @@ export function criarRepositorioMock(): Repositorio & Ensaio {
       mudou();
       return novo;
     },
+    async registrarPresenca(sessao, municipioId, alertaIds, idioma) {
+      // une o gravado com o que esta aba já sabe: outra aba pode ter acabado de gravar a Entrega dela, e se a
+      // gravação desta aba falhou (cota cheia, armazenamento bloqueado) a memória evita gravar e avisar sem parar
+      let temDisco = false;
+      try {
+        temDisco = localStorage.getItem(CHAVE) != null;
+      } catch {}
+      const base = temDisco ? lerEstado() : estado;
+      const sessoes = [...(base.sessoes ?? [])];
+      for (const s of estado.sessoes ?? []) if (!sessoes.some((x) => x.id === s.id)) sessoes.push(s);
+      const entregas = [...(base.entregas ?? [])];
+      for (const e of estado.entregas ?? [])
+        if (!entregas.some((x) => x.sessaoId === e.sessaoId && x.alertaId === e.alertaId)) entregas.push(e);
+      estado = { ...base, sessoes, entregas };
+      const em = new Date().toISOString();
+      const novaSessao = !sessoes.some((s) => s.id === sessao.id);
+      const novas: Entrega[] = alertaIds
+        .filter((alertaId) => !entregas.some((e) => e.sessaoId === sessao.id && e.alertaId === alertaId))
+        .map((alertaId) => ({ alertaId, sessaoId: sessao.id, idioma, em }));
+      // sem novidade, não grava nem avisa: a tela do turista chama isto a cada aviso, e avisar de novo criaria um laço entre abas
+      if (!novaSessao && !novas.length) return;
+      estado = {
+        ...estado,
+        sessoes: novaSessao ? [...sessoes, { ...sessao, municipioId, abertaEm: em }] : sessoes,
+        entregas: [...entregas, ...novas],
+      };
+      mudou();
+    },
+    async sessoesEEntregas() {
+      return { sessoes: [...(estado.sessoes ?? [])], entregas: [...(estado.entregas ?? [])] };
+    },
+    aoMudarSessoesEEntregas(cb) {
+      return assinar(() => cb({ sessoes: [...(estado.sessoes ?? [])], entregas: [...(estado.entregas ?? [])] }));
+    },
+    async encerrarAlerta(id) {
+      if (!estado.alertas.some((a) => a.id === id)) return;
+      const agora = new Date().toISOString();
+      estado = { ...estado, alertas: estado.alertas.map((a) => (a.id === id ? { ...a, validoAte: agora } : a)) };
+      mudou();
+    },
 
     publicarAlerta(a) {
       if (estado.alertas.some((x) => x.id === a.id)) return;
@@ -234,6 +288,10 @@ export function criarRepositorioMock(): Repositorio & Ensaio {
     },
     limparChamados() {
       estado = { ...estado, chamados: [] };
+      mudou();
+    },
+    limparSessoes() {
+      estado = { ...estado, sessoes: [], entregas: [] };
       mudou();
     },
     ultimoChamado() {

@@ -175,3 +175,11 @@ export type FichaSOS = {
 };
 
 export type PraiaHoje = Local & { condicao: Condicao };
+
+// ---- Alcance dos alertas (painel da gestão; ver docs/adr/0002) ----
+
+/** Registro de que um Alerta apareceu na tela de uma Sessão aberta. */
+export type Entrega = { alertaId: string; sessaoId: string; idioma: Idioma; em: string };
+/** Sessão gravada pela tela do turista, com o município dela e quando abriu. */
+export type SessaoAberta = Sessao & { municipioId: string; abertaEm: string };
+export type SessoesEEntregas = { sessoes: SessaoAberta[]; entregas: Entrega[] };

@@ -114,6 +114,14 @@ export function TelaTurista({ origemSlug, forcarConvite = false }: { origemSlug?
     });
   }, [repo, municipioId]);
 
+  // Alcance (docs/adr/0002): grava a Sessão e a Entrega dos alertas que estão na tela, ao carregar e quando chega
+  // alerta novo, no idioma atual da tela. Sem novidade o repositório não grava nem avisa, então não há laço entre abas.
+  const sessao = dados?.sessao;
+  useEffect(() => {
+    if (!sessao || !municipioId) return;
+    void repo.registrarPresenca(sessao, municipioId, alertas.map((a) => a.id), idioma);
+  }, [repo, sessao, municipioId, alertas, idioma]);
+
   // a pílula só aparece se a seção de alertas estiver fora da tela
   useEffect(() => {
     const el = secaoAlertas.current;

@@ -129,13 +129,17 @@ A plataforma nunca fica vazia, mesmo que ninguém poste nada.
 | Extração | Lê boletins (PDF ou tabela) e transforma em "praia X: própria ou imprópria" |
 | Tradução | Publica cada alerta em PT/ES/EN em linguagem de turista |
 | Validação | Cruza relatos do trade com fontes oficiais; casos duvidosos vão para revisão humana |
-| Assistente | Responde ao turista no idioma dele, com dados oficiais e estabelecimentos com Selo |
-| **Triagem do SOS** | Classifica antes do humano: o urgente vai direto ao atendente, já traduzido e classificado; o não urgente (documento perdido, informação) a IA resolve na hora. Nenhum caso urgente fica retido. Precedente: a IA "Mike" do 190 de São Paulo |
+| Assistente ✅ | Responde ao turista no idioma dele, com dados oficiais e estabelecimentos com Selo |
+| **Triagem do SOS** ✅ | Classifica antes do humano: o urgente vai direto ao atendente, já traduzido e classificado; o não urgente (documento perdido, informação) a IA resolve na hora. Nenhum caso urgente fica retido. Precedente: a IA "Mike" do 190 de São Paulo |
 | Painel | Resumos automáticos da semana para a gestão |
 
 A IA **apoia** o atendente humano e não decide sozinha em emergência. A ligação direta para 190/192/193 está sempre disponível.
 
-**No MVP não há chave de API de LLM.** Essas funções são simuladas por regras e respostas prontas, atrás de interfaces que podem ser trocadas por um LLM depois. No pitch, isso vira "arquitetura pronta para IA".
+**No MVP, dois agentes estão construídos de verdade** (✅ na tabela): o guia do turista e a triagem do SOS, que também traduz a mensagem para o português do atendente. Eles rodam no servidor (`web/src/app/api/agente/`, com a Gemini via `@ai-sdk/google`), e a chave nunca vai para o navegador. Os outros pontos da tabela continuam fora do MVP.
+
+**Cada agente tem uma reserva por regras**, que usa os mesmos dados e responde com frases prontas. Sem `GOOGLE_GENERATIVE_AI_API_KEY` no ambiente, ou se a API demorar, o agente cai na reserva e a tela não trava. Hoje não existe `.env` no repositório: a demo roda na reserva, em `modo: "simulado"`.
+
+No pitch, "arquitetura pronta para IA" não é promessa: o caminho do modelo já está escrito e ligar a IA é definir uma variável de ambiente.
 
 ## 7. Parceiros-chave
 
