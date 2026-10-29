@@ -1,0 +1,111 @@
+/* Identidade do painel da gestão: tokens do ba.gov.br, só dentro de .painel-gestao.
+   Nada aqui vaza para a tela do turista nem para a Central. */
+.painel-gestao {
+  --ba-azul: #0756b1;
+  --ba-texto: #212121;
+  --ba-texto-2: rgba(0, 0, 0, 0.54);
+  --ba-linha: #e0e0e0;
+  --ba-linha-2: #eeeeee;
+  --ba-fundo: #f5f5f5;
+  --ba-card: #ffffff;
+  --ba-erro: #b00020;
+
+  /* situação: as cores de bandeira do projeto */
+  --ba-verde: #2e7d32;
+  --ba-amarelo: #e5a93c;
+  --ba-vermelho: #c62828;
+
+  /* passos da rampa derivada do azul, para trilhos e segunda série dos gráficos */
+  --ba-azul-claro: color-mix(in oklab, var(--ba-azul) 38%, white);
+  --ba-azul-trilho: color-mix(in oklab, var(--ba-azul) 10%, white);
+
+  --ba-sombra: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+
+  /* cobre o fundo "mar" do body (pseudo-elemento fixo da tela do turista) */
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  background: var(--ba-fundo);
+  color: var(--ba-texto);
+  font-family: var(--font-gestao), system-ui, sans-serif;
+  font-feature-settings: normal;
+}
+
+.painel-gestao ::selection {
+  background: rgba(7, 86, 177, 0.2);
+}
+
+.painel-gestao :focus-visible {
+  outline: 2px solid var(--ba-azul);
+  outline-offset: 2px;
+}
+
+/* cartão Material: branco, elevação 1, raio 6 */
+.painel-gestao .g-cartao {
+  background: var(--ba-card);
+  border-radius: 6px;
+  box-shadow: var(--ba-sombra);
+}
+
+/* números que se alinham em coluna */
+.painel-gestao .g-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.painel-gestao .g-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding-inline: 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
+}
+.painel-gestao .g-botao:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.painel-gestao .g-botao-primario {
+  background: var(--ba-azul);
+  color: #fff;
+  box-shadow: var(--ba-sombra);
+}
+.painel-gestao .g-botao-primario:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--ba-azul) 88%, black);
+}
+.painel-gestao .g-botao-contorno {
+  border: 1px solid var(--ba-linha);
+  background: var(--ba-card);
+  color: var(--ba-azul);
+}
+.painel-gestao .g-botao-contorno:hover:not(:disabled) {
+  background: var(--ba-azul-trilho);
+}
+.painel-gestao .g-botao-perigo {
+  background: var(--ba-erro);
+  color: #fff;
+}
+
+.painel-gestao .g-campo {
+  height: 40px;
+  width: 100%;
+  border: 1px solid var(--ba-linha);
+  border-radius: 4px;
+  background: var(--ba-card);
+  padding-inline: 12px;
+  font-size: 15px;
+  color: var(--ba-texto);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .painel-gestao * {
+    transition: none !important;
+  }
+}

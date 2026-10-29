@@ -5,6 +5,7 @@ import { repositorio, type Ensaio, type Repositorio } from "@/data/repositorio";
 import type { Alerta, Estabelecimento, Idioma, Municipio, SessoesEEntregas, Severidade } from "@/data/tipos";
 import { calcularAlcance, formatarTempo } from "./alcance";
 import { AlertasAtivos } from "./AlertasAtivos";
+import { Cabecalho, REGIAO } from "./Cabecalho";
 import { PublicarAlerta, type PraiaDaRegiao } from "./PublicarAlerta";
 import { Trade } from "./Trade";
 
@@ -50,6 +51,15 @@ export function AppGestao() {
   const [dados, setDados] = useState<SessoesEEntregas>({ sessoes: [], entregas: [] });
   // valor fixo no prerender (o Next não aceita new Date() aqui); a hora certa chega no efeito abaixo
   const [agora, setAgora] = useState(() => new Date(0));
+  // relógio do cabeçalho: null no prerender, depois anda a cada 15 s
+  const [relogio, setRelogio] = useState<Date | null>(null);
+  const [escopo, setEscopo] = useState(REGIAO);
+
+  useEffect(() => {
+    setRelogio(new Date());
+    const id = setInterval(() => setRelogio(new Date()), 15_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Sessões e Entregas ao vivo; o relógio anda a cada 30 s para a virada do dia
   useEffect(() => {
@@ -107,39 +117,43 @@ export function AppGestao() {
     };
   }, [repo]);
 
-  if (!repo) return <div className="painel-gestao min-h-dvh bg-ground" aria-busy />;
+  if (!repo) return <div className="min-h-dvh" aria-busy />;
 
   return (
-    <main className="painel-gestao mx-auto flex min-h-dvh max-w-[960px] flex-col gap-5 bg-ground px-4 py-6">
-      <header>
-        <h1 className="text-[28px] font-extrabold tracking-[-0.03em]">Painel da gestão</h1>
-        <p className="text-[15px] text-ink-2">Costa do Cacau</p>
-      </header>
-      <PublicarAlerta praias={praias} aoPublicar={(a) => repo.publicarAlerta(a)} />
-      <AlertasAtivos
-        alertas={alertas}
+    <>
+      <Cabecalho
+        agora={relogio}
         municipios={municipios}
-        aoEncerrar={(id) => void repo.encerrarAlerta(id)}
-        alcance={(a) => (
-          <LinhaAlcance
-            alerta={a}
-            dados={dados}
-            agora={agora}
-            municipio={municipios.find((m) => m.id === a.municipioId)?.nome ?? a.municipioId}
-          />
-        )}
+        escopo={escopo}
+        aoMudarEscopo={setEscopo}
       />
-      <Trade comSelo={comSelo} />
-      <footer className="flex flex-wrap items-center gap-3 pt-2">
-        <button
-          type="button"
-          onClick={() => repo.limparSessoes()}
-          className="toque h-10 rounded-sm bg-surface px-4 text-[14px] font-semibold"
-        >
-          Zerar demo
-        </button>
-        <span className="text-[13px] text-ink-2">Apaga as Sessões e Entregas gravadas neste navegador.</span>
-      </footer>
-    </main>
+      <main className="mx-auto grid max-w-[1280px] gap-4 px-4 py-6 sm:px-6">
+        <section aria-label="Indicadores" className="grid gap-4">
+          <Trade comSelo={comSelo} />
+        </section>
+        <section aria-label="Operação" className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <PublicarAlerta praias={praias} aoPublicar={(a) => repo.publicarAlerta(a)} />
+          <AlertasAtivos
+            alertas={alertas}
+            municipios={municipios}
+            aoEncerrar={(id) => void repo.encerrarAlerta(id)}
+            alcance={(a) => (
+              <LinhaAlcance
+                alerta={a}
+                dados={dados}
+                agora={agora}
+                municipio={municipios.find((m) => m.id === a.municipioId)?.nome ?? a.municipioId}
+              />
+            )}
+          />
+        </section>
+        <footer className="flex flex-wrap items-center gap-3 border-t border-(--ba-linha) pt-4">
+          <button type="button" onClick={() => repo.limparSessoes()} className="g-botao g-botao-contorno">
+            Zerar demo
+          </button>
+          <span className="text-[13px] text-(--ba-texto-2)">Apaga as Sessões e Entregas gravadas neste navegador.</span>
+        </footer>
+      </main>
+    </>
   );
 }
