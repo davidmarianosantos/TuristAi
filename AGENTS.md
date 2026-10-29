@@ -16,7 +16,8 @@ Cada área tem dona. Mexa só na sua área; na área da outra pessoa, peça ante
 | WhatsApp simulado (`/chat`) | David | `web/src/components/chat/`, `web/src/app/chat/`, `web/src/lib/chatbot/` |
 | Lógica do turista | David | `web/src/lib/assistente.ts`, `triagem.ts`, `idioma.tsx`, `localizacao.ts`, `mapa.ts`, `rotas.ts` |
 | Ensaio da demo (`/ensaio`) | David | `web/src/app/ensaio/` |
-| Painéis novos (`/gestao`, `/hotel`, `/central`) | Cibelle (CibelleSousa) | criar `web/src/app/<painel>/` e `web/src/components/<painel>/` |
+| Central Integrada (`/central`) | David | `web/src/app/central/`, `web/src/components/central/`, `web/src/lib/central/` |
+| Painéis novos (`/gestao`, `/hotel`) | Cibelle (CibelleSousa) | criar `web/src/app/<painel>/` e `web/src/components/<painel>/` |
 
 **Funcionalidade nova = pasta nova.** Um painel novo vive em `web/src/app/gestao/` + `web/src/components/gestao/` (ou `hotel`, `central`), e nunca dentro de `components/turista/`. Se precisar de um componente da outra área, **importe**, não copie nem altere.
 
@@ -28,7 +29,7 @@ Estes arquivos são usados pelas duas partes. Neles, **só acrescente; não reno
 |---|---|---|
 | `web/src/data/tipos.ts` | novos tipos; novos campos **opcionais** | renomear/remover campos, tornar opcional em obrigatório |
 | `web/src/data/repositorio.ts` | novos métodos na interface e no mock | mudar a assinatura ou o comportamento dos métodos existentes |
-| `web/src/data/seed.ts` | novos registros `[DEMO]` | apagar ou alterar ids, slugs e dados usados na demo (`pousada-mare`, praia `concha`, alerta da Concha) |
+| `web/src/data/seed.ts` | novos registros fictícios (nomes inventados) | apagar ou alterar ids, slugs e dados usados na demo (`pousada-mare`, praia `concha`, alerta da Concha) |
 | `web/src/i18n/textos.ts` | chaves novas, **sempre nos 3 idiomas**, com prefixo da área (ex.: `gestaoTitulo`, `centralFila`) | mudar ou remover chaves existentes |
 | `web/src/app/globals.css` | tokens novos; estilos novos com escopo de classe (ex.: `.painel-gestao …`, como `html.pagina-chat`) | alterar tokens de `:root`, estilos globais de `body`, `button`, `a` |
 | `web/src/app/layout.tsx`, `next.config.ts`, `package.json` | só com combinado entre os dois | trocar fontes, atualizar/remover dependências por conta própria |
@@ -68,7 +69,7 @@ Cole isto no início da conversa se a sua ferramenta não ler `AGENTS.md` sozinh
 2. Edite **apenas** arquivos da área da pessoa que está pedindo (seção 1). Para arquivos de contrato (seção 2), só acréscimos; se precisar mudar algo existente, **pare e pergunte**.
 3. **Não faça refatorações amplas**, não renomeie arquivos/pastas, não rode formatadores no repositório inteiro, não "limpe" código de outra área.
 4. Não atualize, troque nem remova dependências sem pedido explícito.
-5. Siga os padrões que já existem: textos sempre por `useIdioma().t(...)` e nos 3 idiomas; dados sempre pelo `Repositorio` (nunca importar `seed.ts` numa tela); cores pelos tokens de `globals.css`; dados de exemplo fictícios e marcados `[DEMO]`.
+5. Siga os padrões que já existem: textos **que o turista lê** sempre por `useIdioma().t(...)` e nos 3 idiomas (painéis de operadores, como a Central, são só em português e guardam os textos no próprio componente); dados sempre pelo `Repositorio` (nunca importar `seed.ts` numa tela); cores pelos tokens de `globals.css`; dados de exemplo fictícios, com nomes inventados (nunca nomes de estabelecimentos reais).
 6. Ao terminar, rode a checklist da seção 4 e diga o que mudou e o que não conseguiu verificar.
 
 ## 6. Coisas que já se sabe deste projeto

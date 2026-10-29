@@ -90,6 +90,20 @@
   --shadow-2: var(--sombra-2);
   --shadow-3: var(--sombra-3);
   --font-sans: var(--font-app);
+  /* Central Integrada (valores definidos só dentro de .central) */
+  --color-c-fundo: var(--c-fundo);
+  --color-c-painel: var(--c-painel);
+  --color-c-painel-2: var(--c-painel-2);
+  --color-c-painel-3: var(--c-painel-3);
+  --color-c-linha: var(--c-linha);
+  --color-c-texto: var(--c-texto);
+  --color-c-texto-2: var(--c-texto-2);
+  --color-c-texto-3: var(--c-texto-3);
+  --color-c-azul: var(--c-azul);
+  --color-c-azul-claro: var(--c-azul-claro);
+  --color-c-ok: var(--c-ok);
+  --color-c-atencao: var(--c-atencao);
+  --color-c-urgente: var(--c-urgente);
 }
 
 html {
@@ -142,6 +156,19 @@ html.pagina-chat body::before {
 button,
 a {
   touch-action: manipulation;
+}
+
+/* superfícies do navegador também na paleta: seleção, cursor de texto, barra de rolagem */
+::selection {
+  background: rgba(11, 79, 108, 0.22);
+}
+input,
+textarea {
+  caret-color: var(--blue);
+  accent-color: var(--blue);
+}
+html {
+  scrollbar-color: rgba(11, 79, 108, 0.35) transparent;
 }
 button {
   cursor: pointer;
@@ -258,6 +285,90 @@ button {
 }
 .mar {
   animation: mare 14s var(--ease-in-out) infinite alternate;
+}
+
+/* Central Integrada: console escuro, com o grafite e o azul da linha institucional.
+   Tudo aqui só vale dentro de .central, para não mexer nas outras telas. */
+.central {
+  --c-fundo: #121619;
+  --c-painel: #1a1f23;
+  --c-painel-2: #22292e;
+  --c-painel-3: #2b3339;
+  --c-linha: rgba(248, 249, 250, 0.09);
+  --c-texto: #f8f9fa;
+  --c-texto-2: #aab5bd;
+  --c-texto-3: #7f8b94;
+  --c-azul: #0b4f6c;
+  --c-azul-claro: #6cb4d9;
+  --c-ok: #5ccf8a;
+  --c-atencao: #e5a93c;
+  --c-urgente: #ff5d5d;
+  background: var(--c-fundo);
+  color: var(--c-texto);
+  color-scheme: dark;
+}
+.central :focus-visible {
+  outline-color: var(--c-azul-claro);
+}
+.central .leaflet-container {
+  background: #0f1316;
+}
+/* mapa claro do OpenStreetMap virado em escuro: sem provedor pago, combina com o console */
+.central .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.92) saturate(0.55);
+}
+.central .leaflet-tooltip {
+  background: var(--c-painel-3);
+  color: var(--c-texto);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font: 600 12px/1.3 var(--font-app), system-ui, sans-serif;
+}
+.central .leaflet-tooltip-top::before {
+  border-top-color: var(--c-painel-3);
+}
+.central .leaflet-control-attribution {
+  background: rgba(18, 22, 25, 0.7);
+  color: var(--c-texto-3);
+}
+.central .leaflet-control-attribution a {
+  color: var(--c-texto-2);
+}
+/* pino de chamado no mapa: bolinha na cor do serviço; pulsa enquanto espera */
+.pino-central {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--cor);
+  border: 3px solid #121619;
+  box-shadow: 0 0 0 2px var(--cor);
+  transition: transform 160ms var(--ease-out);
+}
+.pino-central[data-destaque="true"] {
+  transform: scale(1.45);
+}
+.pino-central[data-pulsar="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--cor);
+  animation: onda-pino 1.6s var(--ease-out) infinite;
+}
+@keyframes onda-pino {
+  from { transform: scale(0.6); opacity: 0.9; }
+  to { transform: scale(2.2); opacity: 0; }
+}
+/* chamado novo na fila: entra e fica com um brilho por alguns segundos */
+@keyframes chegou {
+  0% { box-shadow: 0 0 0 0 rgba(255, 93, 93, 0.55); }
+  100% { box-shadow: 0 0 0 14px rgba(255, 93, 93, 0); }
+}
+.chegou {
+  animation: entra-de-cima 420ms var(--ease-out) both, chegou 1.4s var(--ease-out) 3;
 }
 
 @media (prefers-reduced-motion: reduce) {

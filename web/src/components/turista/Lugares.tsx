@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { ArrowRight, BedDouble, Car, Compass, Map, MapPin, Music, ShieldCheck, ShoppingBag, Star, UserRound, Utensils, type LucideIcon } from "lucide-react";
 import type { Categoria, Estabelecimento, Traduzido } from "@/data/tipos";
 import { useIdioma } from "@/lib/idioma";
 import { distanciaKm, formatarDistancia } from "@/lib/mapa";
 import { Titulo } from "./Praias";
+import { CLASSE_TRILHO, ITEM_TRILHO, SetasTrilho, useTrilho } from "./Trilho";
 
 export const CATEGORIA: Record<Categoria, Traduzido> = {
   hotel: { pt: "Hotel", es: "Hotel", en: "Hotel" },
@@ -46,25 +48,42 @@ export function Selo({ tamanho = 28 }: { tamanho?: number }) {
 export function CartaoLugar({
   lugar,
   de,
-  largo = false,
+  compacto = false,
+  className = "w-[264px] shrink-0 snap-start",
 }: {
   lugar: Estabelecimento;
   de?: { lat: number; lng: number };
-  largo?: boolean;
+  /** sobre o mapa: topo mais baixo para não cobrir os pinos */
+  compacto?: boolean;
+  /** largura e encaixe; o padrão serve às fileiras do assistente */
+  className?: string;
 }) {
   const { t, tr, idioma } = useIdioma();
   const dist = de ? formatarDistancia(distanciaKm(de, lugar), idioma) : null;
   const v = VISUAL[lugar.categoria];
   const Icone = v.icone;
   return (
-    <article
-      className={`flex flex-col overflow-hidden rounded-[24px] bg-card ${largo ? "w-full" : "w-[264px] shrink-0 snap-start lg:w-auto"}`}
-    >
-      <div className="relative flex h-[112px] items-end justify-between overflow-hidden p-3.5" style={{ background: v.fundo }}>
-        <Icone aria-hidden size={92} strokeWidth={1.4} className="absolute -right-3 -top-3 opacity-25" style={{ color: v.tinta }} />
-        {lugar.temSelo ? <Selo /> : <span />}
+    <article className={`flex flex-col overflow-hidden rounded-[24px] bg-card ${className}`}>
+      <div
+        className={`relative flex items-end justify-between overflow-hidden p-3.5 ${compacto ? "h-[96px]" : "h-[140px]"}`}
+        style={{ background: v.fundo }}
+      >
+        {/* foto ilustrativa do tipo de lugar; sem foto, o ícone da categoria */}
+        {lugar.foto ? (
+          <>
+            <Image src={lugar.foto} alt="" fill sizes="(min-width: 1280px) 300px, (min-width: 1024px) 31vw, 264px" className="object-cover" />
+            <span
+              aria-hidden
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.4) 100%)" }}
+            />
+          </>
+        ) : (
+          <Icone aria-hidden size={92} strokeWidth={1.4} className="absolute -right-3 -top-3 opacity-25" style={{ color: v.tinta }} />
+        )}
+        <span className="relative">{lugar.temSelo && <Selo />}</span>
         {dist && (
-          <span className="flex items-center gap-1 rounded-full bg-black/20 px-2.5 py-1 text-[12px] font-semibold text-white backdrop-blur-sm">
+          <span className="relative flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[12px] font-semibold tabular-nums text-white">
             <MapPin size={12} strokeWidth={2.6} />
             {dist}
           </span>
@@ -108,19 +127,23 @@ export function Lugares({
   aoAbrirMapa(): void;
 }) {
   const { t } = useIdioma();
+  const trilho = useTrilho(lugares.length);
   return (
-    <section aria-labelledby="t-lugares" className="mt-10 rounded-[32px] bg-sand py-8 lg:px-8">
+    <section aria-labelledby="t-lugares" className="mt-10 rounded-[32px] bg-sand py-8 lg:mt-0 lg:px-8">
       <Titulo
         id="t-lugares"
         descoberta
         extra={
-          <button
-            onClick={aoAbrirMapa}
-            className="toque flex h-9 items-center gap-1.5 rounded-full bg-card px-3.5 text-[13px] font-semibold text-cacau shadow-1 lg:hidden"
-          >
-            <Map size={15} strokeWidth={2.4} />
-            {t("mapa")}
-          </button>
+          <>
+            <button
+              onClick={aoAbrirMapa}
+              className="toque flex h-9 items-center gap-1.5 rounded-full bg-card px-3.5 text-[13px] font-semibold text-cacau shadow-1 lg:hidden"
+            >
+              <Map size={15} strokeWidth={2.4} />
+              {t("mapa")}
+            </button>
+            <SetasTrilho trilho={trilho} />
+          </>
         }
       >
         {t("lugaresSelo")}
@@ -128,11 +151,13 @@ export function Lugares({
       {lugares.length === 0 ? (
         <p className="mx-5 rounded-[20px] bg-card p-4 text-[15px] text-ink-2 lg:mx-0">{t("semLugares")}</p>
       ) : (
-        <div className="sem-barra flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-3 lg:grid lg:grid-cols-2 lg:overflow-visible lg:px-0">
+        <ul ref={trilho.ref} className={CLASSE_TRILHO}>
           {lugares.map((l) => (
-            <CartaoLugar key={l.id} lugar={l} de={de} />
+            <li key={l.id} className={`flex w-[264px] ${ITEM_TRILHO}`}>
+              <CartaoLugar lugar={l} de={de} className="w-full" />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       <div className="px-5 lg:hidden">
         <button
