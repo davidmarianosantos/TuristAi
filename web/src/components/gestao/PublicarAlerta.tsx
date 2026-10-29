@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Alerta, Idioma, Municipio, PraiaHoje } from "@/data/tipos";
 import { Cartao } from "./Cartao";
-import { criarAlerta, MODELOS_ALERTA, type ModeloAlerta } from "./modelos";
+import { criarAlerta, MODELOS_ALERTA, ORGAOS_EMISSORES, type ModeloAlerta } from "./modelos";
 
 export type PraiaDaRegiao = { municipio: Municipio; praia: PraiaHoje };
 
@@ -16,6 +16,7 @@ const IDIOMAS: { id: Idioma; rotulo: string }[] = [
 /** Escolhe a praia e o Modelo de alerta; o texto já sai nos 3 idiomas. */
 export function PublicarAlerta({ praias, aoPublicar }: { praias: PraiaDaRegiao[]; aoPublicar: (a: Alerta) => void }) {
   const [praiaId, setPraiaId] = useState("");
+  const [orgaoId, setOrgaoId] = useState(ORGAOS_EMISSORES[0].id);
   const [modelo, setModelo] = useState<ModeloAlerta | null>(null);
   const [publicadoEm, setPublicadoEm] = useState<Date | null>(null);
   const [travado, setTravado] = useState(false);
@@ -29,10 +30,11 @@ export function PublicarAlerta({ praias, aoPublicar }: { praias: PraiaDaRegiao[]
 
   const escolhida = praias.find((p) => p.praia.id === praiaId);
   const municipios = [...new Map(praias.map((p) => [p.municipio.id, p.municipio])).values()];
+  const orgao = ORGAOS_EMISSORES.find((o) => o.id === orgaoId) ?? ORGAOS_EMISSORES[0];
 
   const publicar = () => {
     if (!escolhida || !modelo) return;
-    aoPublicar(criarAlerta(modelo, escolhida.praia, escolhida.municipio));
+    aoPublicar(criarAlerta(modelo, escolhida.praia, escolhida.municipio, orgao));
     setPublicadoEm(new Date());
     setTravado(true);
   };
@@ -59,6 +61,17 @@ export function PublicarAlerta({ praias, aoPublicar }: { praias: PraiaDaRegiao[]
                 </option>
               ))}
           </optgroup>
+        ))}
+      </select>
+
+      <label className="mt-4 block text-[13px] font-medium text-(--ba-texto-2)" htmlFor="gestao-orgao">
+        Órgão emissor
+      </label>
+      <select id="gestao-orgao" className="g-campo mt-1" value={orgaoId} onChange={(e) => setOrgaoId(e.target.value)}>
+        {ORGAOS_EMISSORES.map((o) => (
+          <option key={o.id} value={o.id}>
+            {escolhida ? o.nome(escolhida.municipio) : o.nome({ id: "", nome: "…", lat: 0, lng: 0 })}
+          </option>
         ))}
       </select>
 
@@ -89,6 +102,9 @@ export function PublicarAlerta({ praias, aoPublicar }: { praias: PraiaDaRegiao[]
               <b>{modelo.titulo(escolhida.praia.nome)[id]}</b> · {modelo.texto[id]}
             </p>
           ))}
+          <p className="border-t border-(--ba-linha) pt-2 text-[13px] text-(--ba-texto-2)">
+            Assina: {orgao.nome(escolhida.municipio)}
+          </p>
         </div>
       )}
 

@@ -9,6 +9,7 @@ import { Cabecalho, REGIAO } from "./Cabecalho";
 import { Cobertura } from "./Cobertura";
 import { GraficoAlcanceIdioma, GraficoChamadosServico, GraficoSelosCategoria } from "./Graficos";
 import { IndicadorAlcance, IndicadorEconomia, IndicadorSeguranca } from "./Indicadores";
+import { PainelSOS } from "./PainelSOS";
 import { PublicarAlerta, type PraiaDaRegiao } from "./PublicarAlerta";
 
 type Repo = Repositorio & Ensaio;
@@ -58,12 +59,30 @@ export function AppGestao() {
   const [escopo, setEscopo] = useState(REGIAO);
   const [chamados, setChamados] = useState<ChamadoSOS[]>([]);
 
+  const [origens, setOrigens] = useState<Record<string, Estabelecimento>>({});
+
   // SOS da região inteira, ao vivo (o mesmo estado que a Central lê)
   useEffect(() => {
     if (!repo) return;
     void repo.chamados().then(setChamados);
     return repo.aoMudarChamados(setChamados);
   }, [repo]);
+
+  // nome do estabelecimento que gerou o QR de cada chamado; busca só os ids que ainda faltam
+  useEffect(() => {
+    if (!repo) return;
+    const faltam = [...new Set(chamados.map((c) => c.origemId).filter((id): id is string => !!id && !origens[id]))];
+    if (!faltam.length) return;
+    let vivo = true;
+    void Promise.all(faltam.map((id) => repo.estabelecimentoPorId(id))).then((lista) => {
+      if (!vivo) return;
+      const novos = Object.fromEntries(lista.filter((e): e is Estabelecimento => !!e).map((e) => [e.id, e]));
+      if (Object.keys(novos).length) setOrigens((a) => ({ ...a, ...novos }));
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [repo, chamados, origens]);
 
   useEffect(() => {
     setRelogio(new Date());
@@ -155,60 +174,66 @@ export function AppGestao() {
         escopo={escopo}
         aoMudarEscopo={setEscopo}
       />
-      <main className="mx-auto grid max-w-[1280px] gap-4 px-4 py-6 sm:px-6">
-        <section aria-label="Indicadores" className="grid items-stretch gap-4 lg:grid-cols-3">
-          <IndicadorAlcance
-            alerta={ultimoAlerta}
-            dados={dados}
-            agora={agora}
-            nomeEscopo={nomeEscopo}
-            noEscopo={noEscopo}
-            nomeMunicipio={nomeMunicipio}
-          />
-          <IndicadorSeguranca chamados={chamados} agoraMs={agoraMs} />
-          <IndicadorEconomia
-            comSelo={seloEscopo}
-            nomeEscopo={nomeEscopo}
-            noEscopo={noEscopo}
-            implantado={implantado}
-          />
-        </section>
-        <section aria-label="Operação" className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <PublicarAlerta praias={praias} aoPublicar={(a) => repo.publicarAlerta(a)} />
-          <AlertasAtivos
-            alertas={alertasEscopo}
-            noEscopo={noEscopo}
-            municipios={municipios}
-            aoEncerrar={(id) => void repo.encerrarAlerta(id)}
-            alcance={(a) => (
-              <LinhaAlcance
-                alerta={a}
+      <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
+        {/* o SOS fica numa coluna própria, sempre visível: é o que a banca precisa ver acontecendo */}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+          <div className="grid min-w-0 gap-4">
+            <section aria-label="Indicadores" className="grid items-stretch gap-4 lg:grid-cols-3">
+              <IndicadorAlcance
+                alerta={ultimoAlerta}
                 dados={dados}
                 agora={agora}
-                municipio={municipios.find((m) => m.id === a.municipioId)?.nome ?? a.municipioId}
+                nomeEscopo={nomeEscopo}
+                noEscopo={noEscopo}
+                nomeMunicipio={nomeMunicipio}
               />
-            )}
-          />
-        </section>
-        <section aria-label="Gráficos" className="grid items-stretch gap-4 lg:grid-cols-3">
-          <GraficoAlcanceIdioma
-            alerta={ultimoAlerta}
-            dados={dados}
-            agora={agora}
-            nomeEscopo={nomeEscopo}
-            noEscopo={noEscopo}
-            nomeMunicipio={nomeMunicipio}
-          />
-          <GraficoChamadosServico chamados={chamados} agora={relogio ?? agora} />
-          <GraficoSelosCategoria
-            comSelo={seloEscopo}
-            nomeEscopo={nomeEscopo}
-            noEscopo={noEscopo}
-            implantado={implantado}
-          />
-        </section>
-        <Cobertura situacoes={situacoes} escopo={escopo} aoEscolher={setEscopo} />
-        <footer className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-(--ba-linha) pt-4 text-[12px] text-(--ba-texto-2)">
+              <IndicadorSeguranca chamados={chamados} agoraMs={agoraMs} />
+              <IndicadorEconomia
+                comSelo={seloEscopo}
+                nomeEscopo={nomeEscopo}
+                noEscopo={noEscopo}
+                implantado={implantado}
+              />
+            </section>
+            <section aria-label="Operação" className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+              <PublicarAlerta praias={praias} aoPublicar={(a) => repo.publicarAlerta(a)} />
+              <AlertasAtivos
+                alertas={alertasEscopo}
+                noEscopo={noEscopo}
+                municipios={municipios}
+                aoEncerrar={(id) => void repo.encerrarAlerta(id)}
+                alcance={(a) => (
+                  <LinhaAlcance
+                    alerta={a}
+                    dados={dados}
+                    agora={agora}
+                    municipio={municipios.find((m) => m.id === a.municipioId)?.nome ?? a.municipioId}
+                  />
+                )}
+              />
+            </section>
+            <section aria-label="Gráficos" className="grid items-stretch gap-4 lg:grid-cols-3">
+              <GraficoAlcanceIdioma
+                alerta={ultimoAlerta}
+                dados={dados}
+                agora={agora}
+                nomeEscopo={nomeEscopo}
+                noEscopo={noEscopo}
+                nomeMunicipio={nomeMunicipio}
+              />
+              <GraficoChamadosServico chamados={chamados} agora={relogio ?? agora} />
+              <GraficoSelosCategoria
+                comSelo={seloEscopo}
+                nomeEscopo={nomeEscopo}
+                noEscopo={noEscopo}
+                implantado={implantado}
+              />
+            </section>
+              <Cobertura situacoes={situacoes} escopo={escopo} aoEscolher={setEscopo} />
+          </div>
+          <PainelSOS chamados={chamados} origens={origens} agoraMs={agoraMs} />
+        </div>
+        <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-(--ba-linha) pt-4 text-[12px] text-(--ba-texto-2)">
           <p>
             Todos os números vêm do estado ao vivo da plataforma. Onde ainda não há dado, o painel mostra o vazio.
           </p>

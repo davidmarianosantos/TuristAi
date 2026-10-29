@@ -5,6 +5,8 @@ export type ModeloAlerta = {
   id: "bandeira-vermelha" | "impropria-banho" | "mar-agitado";
   /** rótulo na tela da gestão */
   nome: string;
+  // O título começa pelo nome da praia ("Concha: não entre no mar"): a preposição variava com o nome
+  // ("na Concha", mas "em Itacarezinho") e o nome na frente também lê melhor na lista de alertas.
   tipo: string;
   severidade: Severidade;
   titulo: (praia: string) => Traduzido;
@@ -20,7 +22,7 @@ export const MODELOS_ALERTA: ModeloAlerta[] = [
     nome: "Bandeira vermelha",
     tipo: "bandeira_vermelha",
     severidade: "perigo",
-    titulo: (p) => t(`Não entre no mar na ${p}`, `No entres al mar en ${p}`, `Do not enter the sea at ${p}`),
+    titulo: (p) => t(`${p}: não entre no mar`, `${p}: no entres al mar`, `${p}: do not enter the sea`),
     texto: t(
       "Mar agitado e correntes fortes até novo aviso.",
       "Mar agitado y corrientes fuertes hasta nuevo aviso.",
@@ -34,7 +36,7 @@ export const MODELOS_ALERTA: ModeloAlerta[] = [
     tipo: "impropria_banho",
     severidade: "atencao",
     titulo: (p) =>
-      t(`Água imprópria para banho em ${p}`, `Agua no apta para baño en ${p}`, `Water unsafe for swimming at ${p}`),
+      t(`${p}: água imprópria para banho`, `${p}: agua no apta para baño`, `${p}: water unsafe for swimming`),
     texto: t(
       "Evite entrar na água até o próximo boletim.",
       "Evita entrar al agua hasta el próximo boletín.",
@@ -51,7 +53,7 @@ export const MODELOS_ALERTA: ModeloAlerta[] = [
     nome: "Mar agitado",
     tipo: "mar_agitado",
     severidade: "atencao",
-    titulo: (p) => t(`Mar agitado em ${p}`, `Mar agitado en ${p}`, `Rough sea at ${p}`),
+    titulo: (p) => t(`${p}: mar agitado`, `${p}: mar agitado`, `${p}: rough sea`),
     texto: t(
       "Entre no mar só até a cintura e perto do salva-vidas.",
       "Entra al mar solo hasta la cintura y cerca del socorrista.",
@@ -61,20 +63,36 @@ export const MODELOS_ALERTA: ModeloAlerta[] = [
   },
 ];
 
+/** Quem assina o Alerta. São as fontes e os parceiros que o CLAUDE.md §5 e §7 já nomeiam. */
+export type OrgaoEmissor = { id: string; nome: (municipio: Municipio) => string };
+
+export const ORGAOS_EMISSORES: OrgaoEmissor[] = [
+  { id: "prefeitura", nome: (m) => `Prefeitura de ${m.nome}` },
+  { id: "inema", nome: () => "INEMA" },
+  { id: "defesa-civil", nome: () => "Defesa Civil" },
+  { id: "bombeiros", nome: () => "Corpo de Bombeiros" },
+  { id: "marinha", nome: () => "Marinha do Brasil" },
+];
+
 /** Monta o Alerta pronto para publicar: id novo, criado agora, válido até o fim do dia. */
-export function criarAlerta(modelo: ModeloAlerta, praia: PraiaHoje, municipio: Municipio): Alerta {
+export function criarAlerta(
+  modelo: ModeloAlerta,
+  praia: PraiaHoje,
+  municipio: Municipio,
+  orgao: OrgaoEmissor = ORGAOS_EMISSORES[0],
+): Alerta {
   const agora = new Date();
   const fimDoDia = new Date(agora);
   fimDoDia.setHours(23, 59, 59, 999);
   return {
-    id: `a-${modelo.id}-${praia.id}-${agora.getTime()}`,
+    id: `a-${modelo.id}-${praia.id}-${orgao.id}-${agora.getTime()}`,
     tipo: modelo.tipo,
     severidade: modelo.severidade,
     municipioId: praia.municipioId,
     localId: praia.id,
     titulo: modelo.titulo(praia.nome),
     texto: modelo.texto,
-    origem: `Prefeitura de ${municipio.nome}`,
+    origem: orgao.nome(municipio),
     criadoEm: agora.toISOString(),
     validoAte: fimDoDia.toISOString(),
     condicao: modelo.condicao,
