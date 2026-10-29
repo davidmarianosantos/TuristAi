@@ -23,7 +23,6 @@ type Msg =
       praias: PraiaHoje[];
       sos: boolean;
       pronto: boolean;
-      modo?: "ia" | "simulado";
     };
 type MsgAgente = Extract<Msg, { de: "assistente" }>;
 
@@ -70,7 +69,7 @@ export function AssistenteCampo({
         aoPerguntar(texto.trim() || undefined);
         setTexto("");
       }}
-      className={`flex items-center gap-2 rounded-full bg-card py-1 pl-5 pr-1 shadow-2 ${busca ? "h-14" : "mt-4"}`}
+      className={`flex items-center gap-2 rounded-full bg-card py-1 pl-5 pr-1 shadow-2 transition-shadow focus-within:ring-2 focus-within:ring-white/70 ${busca ? "h-14" : "mt-4"}`}
     >
       <label htmlFor={`pergunta${sufixo}`} className="sr-only">
         {t("oQueQuerSaber")}
@@ -127,8 +126,7 @@ export function AssistenteCampo({
 }
 
 /** O "raciocínio" do agente, discreto: cada etapa vira uma linha pequena; a última pisca enquanto trabalha. */
-export function EtapasAgente({ etapas, pronto, modo }: { etapas: string[]; pronto: boolean; modo?: "ia" | "simulado" }) {
-  const { t } = useIdioma();
+export function EtapasAgente({ etapas, pronto }: { etapas: string[]; pronto: boolean }) {
   if (!etapas.length) return null;
   return (
     <ol aria-label="etapas" className="flex flex-col gap-0.5 pl-1 text-[12px] leading-snug text-ink-2">
@@ -145,12 +143,6 @@ export function EtapasAgente({ etapas, pronto, modo }: { etapas: string[]; pront
           </li>
         );
       })}
-      {pronto && modo && (
-        <li className="mt-0.5 flex items-center gap-1.5 font-semibold">
-          <span aria-hidden className={`size-1.5 shrink-0 rounded-full ${modo === "ia" ? "bg-ok" : "bg-warn"}`} />
-          {modo === "ia" ? t("turistaAgenteIA") : t("turistaAgenteSimulado")}
-        </li>
-      )}
     </ol>
   );
 }
@@ -201,7 +193,7 @@ export function FolhaAssistente({
           if (e.tipo === "etapa") mudar((m) => ({ ...m, etapas: [...m.etapas, e.texto] }));
           if (e.tipo === "texto") mudar((m) => ({ ...m, texto: m.texto + e.delta }));
           if (e.tipo === "sos") mudar((m) => ({ ...m, sos: true }));
-          if (e.tipo === "fim") mudar((m) => ({ ...m, pronto: true, modo: e.modo }));
+          if (e.tipo === "fim") mudar((m) => ({ ...m, pronto: true }));
           if (e.tipo === "lugares")
             void Promise.all(e.ids.map((x) => repo.estabelecimentoPorId(x))).then((l) =>
               mudar((m) => ({ ...m, lugares: l.filter((x): x is Estabelecimento => !!x) })),
@@ -220,7 +212,6 @@ export function FolhaAssistente({
         praias: r.praias ?? [],
         sos: !!r.abrirSOS,
         pronto: true,
-        modo: "simulado",
       }));
     }
   };
@@ -255,7 +246,7 @@ export function FolhaAssistente({
               </p>
             ) : (
               <div key={m.id} className="aparece flex flex-col gap-2.5">
-                <EtapasAgente etapas={m.etapas} pronto={m.pronto} modo={m.modo} />
+                <EtapasAgente etapas={m.etapas} pronto={m.pronto} />
                 {m.texto ? (
                   <p aria-live="polite" className="max-w-[90%] whitespace-pre-line rounded-[20px] rounded-bl-[6px] bg-surface px-4 py-3 text-[15px]">
                     {m.texto}
@@ -305,7 +296,7 @@ export function FolhaAssistente({
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           placeholder={t("escrevaAqui")}
-          className="h-12 min-w-0 flex-1 rounded-full bg-surface px-5 text-[16px] outline-none placeholder:text-ink-2 focus-visible:outline-2 focus-visible:outline-blue"
+          className="h-12 min-w-0 flex-1 rounded-full bg-surface px-5 text-[16px] outline-none transition-shadow placeholder:text-ink-2 focus:bg-card focus:ring-2 focus:ring-line"
           autoComplete="off"
         />
         <BotaoEnviar rotulo={t("enviar")} />

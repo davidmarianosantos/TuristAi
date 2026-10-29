@@ -1,4 +1,4 @@
-// Dados de exemplo do protótipo. Os estabelecimentos são fictícios (nomes inventados, fotos ilustrativas);
+// Dados de exemplo do protótipo. Os estabelecimentos são fictícios (nomes, endereços e telefones inventados, fotos ilustrativas);
 // os atrativos são lugares públicos reais da região.
 import type { Alerta, Atrativo, Condicao, Estabelecimento, Local, Municipio } from "./tipos";
 
@@ -60,13 +60,17 @@ export const ESTABELECIMENTOS: Estabelecimento[] = [
   {
     id: "e1", slug: "pousada-mare", nome: "Pousada Vila Maré", categoria: "pousada", municipioId: "itacare",
     lat: -14.284, lng: -38.9935, cadastur: true, temSelo: true, local: "Orla da Concha", avaliacao: { nota: 4.8, total: 212 },
+    endereco: "Caminho da Concha, 120 – Itacaré", telefone: "(73) 90000-0001",
+    horario: t("Recepção 24 horas", "Recepción 24 horas", "Front desk 24 hours"),
     foto: foto("praia-da-concha"),
     descricao: t("Pousada de 12 quartos perto da Concha", "Posada de 12 habitaciones cerca de Concha", "12-room inn near Concha beach"),
     precos: [{ item: t("Diária casal", "Noche pareja", "Double room, night"), valor: 320 }],
   },
   {
     id: "e2", slug: "restaurante-cacau", nome: "Varanda do Dendê", categoria: "restaurante", municipioId: "itacare",
-    lat: -14.2805, lng: -38.9955, cadastur: true, temSelo: true, local: "Centro", avaliacao: { nota: 4.7, total: 318 },
+    lat: -14.2805, lng: -38.9955, cadastur: false, temSelo: true, local: "Centro", avaliacao: { nota: 4.7, total: 318 },
+    endereco: "Rua Pedro Longo, 210 – Centro, Itacaré", telefone: "(73) 90000-0002",
+    horario: t("Todos os dias, das 11h às 22h", "Todos los días, de 11 a 22 h", "Every day, 11am to 10pm"),
     foto: foto("moqueca"),
     descricao: t("Comida baiana e frutos do mar", "Comida bahiana y mariscos", "Bahian food and seafood"),
     precos: [
@@ -77,6 +81,8 @@ export const ESTABELECIMENTOS: Estabelecimento[] = [
   {
     id: "e3", slug: "barraca-do-sol", nome: "Barraca Onda Mansa", categoria: "barraca", municipioId: "itacare",
     lat: -14.295, lng: -38.993, cadastur: false, temSelo: true, local: "Praia da Ribeira", avaliacao: { nota: 4.5, total: 96 },
+    endereco: "Praia da Ribeira, ao lado do posto de salva-vidas – Itacaré", telefone: "(73) 90000-0003",
+    horario: t("Todos os dias, das 8h às 17h", "Todos los días, de 8 a 17 h", "Every day, 8am to 5pm"),
     foto: foto("agua-de-coco"),
     descricao: t("Barraca na Ribeira", "Chiringuito en Ribeira", "Beach stall at Ribeira"),
     precos: [
@@ -86,7 +92,9 @@ export const ESTABELECIMENTOS: Estabelecimento[] = [
   },
   {
     id: "e4", slug: "cantina-da-vila", nome: "Cantina Beco Verde", categoria: "restaurante", municipioId: "itacare",
-    lat: -14.2795, lng: -38.9972, cadastur: true, temSelo: true, local: "Centro", avaliacao: { nota: 4.4, total: 154 },
+    lat: -14.2795, lng: -38.9972, cadastur: false, temSelo: true, local: "Centro", avaliacao: { nota: 4.4, total: 154 },
+    endereco: "Beco das Flores, 45 – Centro, Itacaré", telefone: "(73) 90000-0004",
+    horario: t("De terça a domingo, das 18h às 23h", "De martes a domingo, de 18 a 23 h", "Tuesday to Sunday, 6pm to 11pm"),
     foto: foto("pizza"),
     descricao: t("Massas e pizzas no centro", "Pastas y pizzas en el centro", "Pasta and pizza downtown"),
     precos: [
@@ -95,9 +103,11 @@ export const ESTABELECIMENTOS: Estabelecimento[] = [
     ],
   },
   {
-    id: "e5", slug: "taxi-itacare", nome: "Rádio Táxi Litoral", categoria: "transporte", municipioId: "itacare",
+    id: "e5", slug: "taxi-itacare", nome: "Litoral Transfers", categoria: "transporte", municipioId: "itacare",
     lat: -14.2782, lng: -38.998, cadastur: true, temSelo: true, local: "Ponto do Centro", avaliacao: { nota: 4.9, total: 87 },
-    descricao: t("Táxi 24h com motorista credenciado", "Taxi 24h con conductor acreditado", "24h taxi, licensed driver"),
+    endereco: "Ponto do Centro, Rua Lodônio Almeida – Itacaré", telefone: "(73) 90000-0005",
+    horario: t("24 horas, com agendamento", "24 horas, con reserva", "24 hours, booking required"),
+    descricao: t("Transfers e traslados turísticos com motorista credenciado", "Traslados turísticos con conductor acreditado", "Tourist transfers with a licensed driver"),
     precos: [
       { item: t("Centro → Itacarezinho", "Centro → Itacarezinho", "Downtown → Itacarezinho"), valor: 60 },
       { item: t("Itacaré → Aeroporto de Ilhéus", "Itacaré → Aeropuerto de Ilhéus", "Itacaré → Ilhéus airport"), valor: 280 },
@@ -106,6 +116,8 @@ export const ESTABELECIMENTOS: Estabelecimento[] = [
   {
     id: "e6", slug: "trilhas-costa", nome: "Trilheiros do Cacau", categoria: "receptivo", municipioId: "itacare",
     lat: -14.2812, lng: -38.9948, cadastur: true, temSelo: true, local: "Centro", avaliacao: { nota: 4.8, total: 143 },
+    endereco: "Rua Pituba, 88 – Centro, Itacaré", telefone: "(73) 90000-0006",
+    horario: t("Saídas diárias às 8h; reservas até as 20h da véspera", "Salidas diarias a las 8 h; reservas hasta las 20 h del día anterior", "Daily departures at 8am; book by 8pm the day before"),
     foto: foto("engenhoca-2"),
     descricao: t("Trilhas e passeios com guia", "Senderos y paseos con guía", "Guided trails and tours"),
     precos: [{ item: t("Trilha das 4 praias", "Sendero de las 4 playas", "Four-beaches trail"), valor: 120 }],
@@ -113,6 +125,8 @@ export const ESTABELECIMENTOS: Estabelecimento[] = [
   {
     id: "e7", slug: "emporio-chocolate", nome: "Empório Cacau Fino", categoria: "comercio", municipioId: "itacare",
     lat: -14.2799, lng: -38.9962, cadastur: false, temSelo: true, local: "Centro", avaliacao: { nota: 4.6, total: 75 },
+    endereco: "Rua Pedro Longo, 155 – Centro, Itacaré", telefone: "(73) 90000-0007",
+    horario: t("Todos os dias, das 9h às 21h", "Todos los días, de 9 a 21 h", "Every day, 9am to 9pm"),
     foto: foto("chocolate"),
     descricao: t("Chocolate de cacau da região", "Chocolate de cacao de la región", "Chocolate from local cacao"),
     precos: [{ item: t("Barra 70% 100 g", "Tableta 70% 100 g", "70% bar, 100 g"), valor: 22 }],
@@ -120,18 +134,24 @@ export const ESTABELECIMENTOS: Estabelecimento[] = [
   {
     id: "e8", slug: "bar-da-pedra", nome: "Bar Pedra Solta", categoria: "vida_noturna", municipioId: "itacare",
     lat: -14.2809, lng: -38.9942, cadastur: false, temSelo: false, local: "Concha", avaliacao: { nota: 4.2, total: 60 },
+    endereco: "Caminho da Concha, 40 – Itacaré", telefone: "(73) 90000-0008",
+    horario: t("De quinta a sábado, das 19h à 1h", "De jueves a sábado, de 19 a 1 h", "Thursday to Saturday, 7pm to 1am"),
     descricao: t("Bar com música ao vivo", "Bar con música en vivo", "Bar with live music"),
     precos: [],
   },
   {
     id: "e9", slug: "hotel-orla", nome: "Hotel Mirante da Orla", categoria: "hotel", municipioId: "ilheus",
     lat: -14.7955, lng: -39.0395, cadastur: true, temSelo: true, local: "Orla de Ilhéus", avaliacao: { nota: 4.6, total: 402 },
+    endereco: "Av. Soares Lopes, 900 – Ilhéus", telefone: "(73) 90000-0009",
+    horario: t("Recepção 24 horas", "Recepción 24 horas", "Front desk 24 hours"),
     descricao: t("Hotel na orla de Ilhéus", "Hotel en el paseo marítimo de Ilhéus", "Seafront hotel in Ilhéus"),
     precos: [{ item: t("Diária casal", "Noche pareja", "Double room, night"), valor: 410 }],
   },
   {
     id: "e10", slug: "restaurante-orla", nome: "Casquinha da Orla", categoria: "restaurante", municipioId: "ilheus",
-    lat: -14.797, lng: -39.039, cadastur: true, temSelo: true, local: "Orla de Ilhéus", avaliacao: { nota: 4.5, total: 231 },
+    lat: -14.797, lng: -39.039, cadastur: false, temSelo: true, local: "Orla de Ilhéus", avaliacao: { nota: 4.5, total: 231 },
+    endereco: "Av. Soares Lopes, 1.200 – Ilhéus", telefone: "(73) 90000-0010",
+    horario: t("Todos os dias, das 11h às 23h", "Todos los días, de 11 a 23 h", "Every day, 11am to 11pm"),
     foto: foto("moqueca-cacau"),
     descricao: t("Frutos do mar na orla", "Mariscos frente al mar", "Seafood on the seafront"),
     precos: [{ item: t("Casquinha de siri", "Casquinha de cangrejo", "Stuffed crab shell"), valor: 28 }],
@@ -142,6 +162,7 @@ export const ESTABELECIMENTOS: Estabelecimento[] = [
 export const ATRATIVOS: Atrativo[] = [
   {
     id: "quatro-praias", municipioId: "itacare", tipo: "trilha", nome: "Trilha das Quatro Praias",
+    nomes: t("Trilha das Quatro Praias", "Sendero de las Cuatro Playas", "Four Beaches Trail"),
     lat: -14.3105, lng: -39.0035, foto: foto("engenhoca"),
     duracao: t("4 km de trilha", "4 km de sendero", "4 km trail"),
     resumo: t(
@@ -162,6 +183,7 @@ export const ATRATIVOS: Atrativo[] = [
   },
   {
     id: "ponta-do-xareu", municipioId: "itacare", tipo: "mirante", nome: "Mirante da Ponta do Xaréu",
+    nomes: t("Mirante da Ponta do Xaréu", "Mirador de la Ponta do Xaréu", "Ponta do Xaréu Viewpoint"),
     lat: -14.279, lng: -38.9893, foto: foto("por-do-sol-xareu"),
     duracao: t("No fim da tarde", "Al atardecer", "Late afternoon"),
     resumo: t("O pôr do sol mais famoso de Itacaré", "La puesta de sol más famosa de Itacaré", "Itacaré's best-known sunset"),
@@ -178,6 +200,7 @@ export const ATRATIVOS: Atrativo[] = [
   },
   {
     id: "prainha", municipioId: "itacare", tipo: "trilha", nome: "Trilha da Prainha",
+    nomes: t("Trilha da Prainha", "Sendero de la Prainha", "Prainha Trail"),
     lat: -14.303, lng: -38.9952, foto: foto("prainha"),
     duracao: t("40 min de trilha", "40 min de sendero", "40-minute trail"),
     resumo: t("Areia clara e coqueiros, só se chega a pé", "Arena clara y cocoteros, solo se llega a pie", "Pale sand and palm trees, reachable only on foot"),
@@ -194,6 +217,7 @@ export const ATRATIVOS: Atrativo[] = [
   },
   {
     id: "rio-de-contas", municipioId: "itacare", tipo: "passeio", nome: "Passeio de barco no Rio de Contas",
+    nomes: t("Passeio de barco no Rio de Contas", "Paseo en barco por el Río de Contas", "Boat trip on the Rio de Contas"),
     foto: foto("rio-de-contas"),
     resumo: t("Manguezal, ilhas e a foz do rio", "Manglar, islas y la desembocadura del río", "Mangroves, islands and the river mouth"),
     descricao: t(
@@ -209,6 +233,7 @@ export const ATRATIVOS: Atrativo[] = [
   },
   {
     id: "rafting", municipioId: "itacare", tipo: "aventura", nome: "Rafting em Taboquinhas",
+    nomes: t("Rafting em Taboquinhas", "Rafting en Taboquinhas", "Rafting in Taboquinhas"),
     lat: -14.212, lng: -39.147, foto: foto("rafting"),
     resumo: t("Corredeiras do Rio de Contas", "Rápidos del Río de Contas", "Rio de Contas rapids"),
     descricao: t(
@@ -224,6 +249,7 @@ export const ATRATIVOS: Atrativo[] = [
   },
   {
     id: "fazenda-cacau", municipioId: "itacare", tipo: "cacau", nome: "Visita a fazenda de cacau",
+    nomes: t("Visita a fazenda de cacau", "Visita a una hacienda de cacao", "Cacao farm visit"),
     foto: foto("cacau"),
     resumo: t("Do fruto no pé ao chocolate", "Del fruto en el árbol al chocolate", "From the pod on the tree to chocolate"),
     descricao: t(
@@ -239,6 +265,7 @@ export const ATRATIVOS: Atrativo[] = [
   },
   {
     id: "igreja-sao-miguel", municipioId: "itacare", tipo: "cultura", nome: "Igreja de São Miguel",
+    nomes: t("Igreja de São Miguel", "Iglesia de San Miguel", "St. Michael's Church"),
     lat: -14.2778, lng: -38.9978, foto: foto("igreja-sao-miguel"),
     resumo: t("A matriz do centro histórico", "La iglesia matriz del centro histórico", "The parish church in the old town"),
     descricao: t(
@@ -253,6 +280,7 @@ export const ATRATIVOS: Atrativo[] = [
   },
   {
     id: "casa-jorge-amado", municipioId: "ilheus", tipo: "cultura", nome: "Casa de Cultura Jorge Amado",
+    nomes: t("Casa de Cultura Jorge Amado", "Casa de Cultura Jorge Amado", "Jorge Amado House of Culture"),
     lat: -14.7905, lng: -39.0402, foto: foto("casa-jorge-amado"),
     resumo: t("O casarão do escritor, hoje museu", "La casona del escritor, hoy museo", "The writer's family home, now a museum"),
     descricao: t(
@@ -267,6 +295,7 @@ export const ATRATIVOS: Atrativo[] = [
   },
   {
     id: "catedral-sao-sebastiao", municipioId: "ilheus", tipo: "cultura", nome: "Catedral de São Sebastião",
+    nomes: t("Catedral de São Sebastião", "Catedral de San Sebastián", "St. Sebastian's Cathedral"),
     lat: -14.7937, lng: -39.0376, foto: foto("catedral-ilheus"),
     resumo: t("O cartão-postal do centro histórico", "La postal del centro histórico", "The old town's postcard view"),
     descricao: t(
@@ -281,6 +310,7 @@ export const ATRATIVOS: Atrativo[] = [
   },
   {
     id: "quarteirao-jorge-amado", municipioId: "ilheus", tipo: "cultura", nome: "Quarteirão Jorge Amado",
+    nomes: t("Quarteirão Jorge Amado", "Manzana Jorge Amado", "Jorge Amado Quarter"),
     lat: -14.7932, lng: -39.0388, foto: foto("quarteirao-jorge-amado"),
     resumo: t("O cenário de Gabriela, Cravo e Canela", "El escenario de Gabriela, clavo y canela", "The setting of Gabriela, Clove and Cinnamon"),
     descricao: t(
