@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { repositorio, type Ensaio, type Repositorio } from "@/data/repositorio";
-import type { Alerta, Estabelecimento, Idioma, Municipio, SessoesEEntregas, Severidade } from "@/data/tipos";
+import type { Alerta, ChamadoSOS, Estabelecimento, Idioma, Municipio, SessoesEEntregas, Severidade } from "@/data/tipos";
 import { calcularAlcance, formatarTempo } from "./alcance";
 import { AlertasAtivos } from "./AlertasAtivos";
 import { Cabecalho, REGIAO } from "./Cabecalho";
+import { GraficoAlcanceIdioma, GraficoChamadosServico, GraficoSelosCategoria } from "./Graficos";
+import { IndicadorAlcance, IndicadorEconomia, IndicadorSeguranca } from "./Indicadores";
 import { PublicarAlerta, type PraiaDaRegiao } from "./PublicarAlerta";
-import { Trade } from "./Trade";
 
 type Repo = Repositorio & Ensaio;
 
@@ -54,6 +55,14 @@ export function AppGestao() {
   // relógio do cabeçalho: null no prerender, depois anda a cada 15 s
   const [relogio, setRelogio] = useState<Date | null>(null);
   const [escopo, setEscopo] = useState(REGIAO);
+  const [chamados, setChamados] = useState<ChamadoSOS[]>([]);
+
+  // SOS da região inteira, ao vivo (o mesmo estado que a Central lê)
+  useEffect(() => {
+    if (!repo) return;
+    void repo.chamados().then(setChamados);
+    return repo.aoMudarChamados(setChamados);
+  }, [repo]);
 
   useEffect(() => {
     setRelogio(new Date());
@@ -119,6 +128,18 @@ export function AppGestao() {
 
   if (!repo) return <div className="min-h-dvh" aria-busy />;
 
+  // o seletor do cabeçalho filtra Alertas e trade; a Central é regional e não muda com ele
+  const naRegiao = escopo === REGIAO;
+  const nomeMunicipio = (id: string) => municipios.find((m) => m.id === id)?.nome ?? id;
+  const nomeEscopo = naRegiao ? "Costa do Cacau" : nomeMunicipio(escopo);
+  const noEscopo = naRegiao ? "na Costa do Cacau" : `em ${nomeEscopo}`;
+  const alertasEscopo = naRegiao ? alertas : alertas.filter((a) => a.municipioId === escopo);
+  const ultimoAlerta = alertasEscopo.reduce<Alerta | null>((u, a) => (!u || a.criadoEm > u.criadoEm ? a : u), null);
+  const seloEscopo = naRegiao ? comSelo : comSelo.filter((e) => e.municipioId === escopo);
+  // implantado = já tem dados no repositório (praias do dia ou Estabelecimentos com Selo)
+  const implantado = naRegiao || praias.some((p) => p.municipio.id === escopo) || seloEscopo.length > 0;
+  const agoraMs = relogio?.getTime() ?? 0;
+
   return (
     <>
       <Cabecalho
@@ -128,13 +149,44 @@ export function AppGestao() {
         aoMudarEscopo={setEscopo}
       />
       <main className="mx-auto grid max-w-[1280px] gap-4 px-4 py-6 sm:px-6">
-        <section aria-label="Indicadores" className="grid gap-4">
-          <Trade comSelo={comSelo} />
+        <section aria-label="Indicadores" className="grid items-stretch gap-4 lg:grid-cols-3">
+          <IndicadorAlcance
+            alerta={ultimoAlerta}
+            dados={dados}
+            agora={agora}
+            nomeEscopo={nomeEscopo}
+            noEscopo={noEscopo}
+            nomeMunicipio={nomeMunicipio}
+          />
+          <IndicadorSeguranca chamados={chamados} agoraMs={agoraMs} />
+          <IndicadorEconomia
+            comSelo={seloEscopo}
+            nomeEscopo={nomeEscopo}
+            noEscopo={noEscopo}
+            implantado={implantado}
+          />
+        </section>
+        <section aria-label="Gráficos" className="grid items-stretch gap-4 lg:grid-cols-3">
+          <GraficoAlcanceIdioma
+            alerta={ultimoAlerta}
+            dados={dados}
+            agora={agora}
+            nomeEscopo={nomeEscopo}
+            noEscopo={noEscopo}
+            nomeMunicipio={nomeMunicipio}
+          />
+          <GraficoChamadosServico chamados={chamados} agora={relogio ?? agora} />
+          <GraficoSelosCategoria
+            comSelo={seloEscopo}
+            nomeEscopo={nomeEscopo}
+            noEscopo={noEscopo}
+            implantado={implantado}
+          />
         </section>
         <section aria-label="Operação" className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <PublicarAlerta praias={praias} aoPublicar={(a) => repo.publicarAlerta(a)} />
           <AlertasAtivos
-            alertas={alertas}
+            alertas={alertasEscopo}
             municipios={municipios}
             aoEncerrar={(id) => void repo.encerrarAlerta(id)}
             alcance={(a) => (

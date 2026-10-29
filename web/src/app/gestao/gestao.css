@@ -15,9 +15,10 @@
   --ba-amarelo: #e5a93c;
   --ba-vermelho: #c62828;
 
-  /* passos da rampa derivada do azul, para trilhos e segunda série dos gráficos */
-  --ba-azul-claro: color-mix(in oklab, var(--ba-azul) 38%, white);
-  --ba-azul-trilho: color-mix(in oklab, var(--ba-azul) 10%, white);
+  /* passos da rampa do azul, validados com o validate_palette da skill dataviz (--ordinal):
+     #0756b1 → #6b97d3 (3,00:1 sobre o branco); trilho é o fundo das barras, não é série */
+  --ba-azul-claro: #6b97d3;
+  --ba-azul-trilho: #e6eef8;
 
   --ba-sombra: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
 
