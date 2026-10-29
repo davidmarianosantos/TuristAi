@@ -66,11 +66,11 @@ export function ListaPraias({ praias }: { praias: PraiaHoje[] }) {
 export function Praias({ praias }: { praias: PraiaHoje[] }) {
   const { t, tr } = useIdioma();
   return (
-    <section aria-labelledby="t-praias" className="pt-10">
+    <section aria-labelledby="t-praias" className="pt-10 lg:pt-14">
       <Titulo id="t-praias">{t("praiasHoje")}</Titulo>
       {/* A linha da costa: cada praia é a bandeira do dia fincada na areia, com o mar batendo embaixo. */}
       <div className="relative mx-4 overflow-hidden rounded-[28px] bg-sand lg:mx-0">
-        <ul className="sem-barra relative z-10 flex snap-x gap-2 overflow-x-auto scroll-px-5 px-5 pt-6 pb-[72px]">
+        <ul className="sem-barra relative z-10 flex snap-x gap-2 overflow-x-auto scroll-px-5 px-5 pt-6 pb-[72px] lg:justify-around lg:px-8 lg:pt-8">
           {praias.map((p) => {
             const s = SITUACAO[p.condicao.situacao];
             return (

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, SendHorizontal } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CheckCheck, EllipsisVertical, Mic, Paperclip, Phone, SendHorizontal, Smile, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { MUNICIPIO_PADRAO } from "@/data/seed";
 import type { Estabelecimento } from "@/data/tipos";
@@ -14,7 +14,7 @@ import { Bandeira } from "@/components/ui/Bandeira";
 import { CartaoLugar } from "@/components/turista/Lugares";
 import { ListaPraias } from "@/components/turista/Praias";
 import { useRepositorio } from "@/components/turista/RepositorioContext";
-import logo from "../../../public/img/logo-turistai.png";
+import mascote from "../../../public/img/mascote.png";
 
 const novoId = () => Math.random().toString(36).slice(2, 10);
 
@@ -77,30 +77,86 @@ function useTelaIsolada(lista: React.RefObject<HTMLElement | null>, raiz: React.
   return altura;
 }
 
+// Visual de app de mensagens: cores próprias do canal (verde-petróleo, papel de parede claro),
+// sem logo nem nome de marca de terceiros.
+const ZAP = {
+  barra: "#008069",
+  fundo: "#efeae2",
+  enviada: "#d9fdd3",
+  recebida: "#ffffff",
+  hora: "#667781",
+  visto: "#53bdeb",
+  campo: "#f0f2f5",
+};
+
+// papel de parede com motivos da Costa do Cacau (concha, onda, bandeira, cacau) em traço bem leve
+const PAPEL =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180' fill='none' stroke='%23000' stroke-opacity='.055' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 40c6-6 12-6 18 0s12 6 18 0'/%3E%3Cpath d='M118 22v26M118 23h20l-5 6 5 6h-20'/%3E%3Cpath d='M40 120c0-12 10-20 20-20s20 8 20 20c-6 6-34 6-40 0z'/%3E%3Cpath d='M50 108l10 12 10-12'/%3E%3Cellipse cx='140' cy='120' rx='10' ry='18'/%3E%3Cpath d='M140 102v36M134 108c3 4 3 20 0 24M146 108c-3 4-3 20 0 24'/%3E%3Cpath d='M96 160c6-6 12-6 18 0s12 6 18 0'/%3E%3Ccircle cx='96' cy='74' r='5'/%3E%3C/svg%3E\")";
+
+/** Rabicho do balão (só no primeiro balão de cada mensagem, como no app). */
+function Rabicho({ lado, cor }: { lado: "esq" | "dir"; cor: string }) {
+  return (
+    <svg
+      aria-hidden
+      width="8"
+      height="13"
+      viewBox="0 0 8 13"
+      className={`absolute top-0 ${lado === "dir" ? "-right-2" : "-left-2 -scale-x-100"}`}
+    >
+      <path d="M0 0h8L1.5 9.5C.7 10.7 0 10 0 8.5z" fill={cor} />
+    </svg>
+  );
+}
+
+function Hora({ hora, visto }: { hora: string; visto?: boolean }) {
+  return (
+    <span className="float-right ml-2 mt-1.5 flex translate-y-1 items-center gap-0.5 text-[11px] leading-none" style={{ color: ZAP.hora }}>
+      {hora}
+      {visto && <CheckCheck size={15} strokeWidth={2.2} style={{ color: ZAP.visto }} aria-hidden />}
+    </span>
+  );
+}
+
 /** Desenha um bloco da mensagem. Novos tipos de bloco entram aqui. */
-function BlocoChat({ bloco, de, aoTocar }: { bloco: Bloco; de: MensagemChat["de"]; aoTocar(valor: string): void }) {
+function BlocoChat({
+  bloco,
+  de,
+  primeiro,
+  hora,
+  aoTocar,
+}: {
+  bloco: Bloco;
+  de: MensagemChat["de"];
+  primeiro: boolean;
+  hora?: string;
+  aoTocar(valor: string): void;
+}) {
   const { tr } = useIdioma();
+  const minha = de === "turista";
+  const cor = minha ? ZAP.enviada : ZAP.recebida;
+  const balao = `relative max-w-[80%] rounded-[8px] px-2.5 py-1.5 text-[15px] leading-[1.35] text-[#111b21] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${
+    minha ? "self-end" : "self-start"
+  } ${primeiro ? (minha ? "rounded-tr-none" : "rounded-tl-none") : ""}`;
+
   switch (bloco.tipo) {
     case "texto":
       return (
-        <p
-          className={`max-w-[85%] whitespace-pre-line px-3.5 py-2 text-[15px] leading-snug shadow-1 ${
-            de === "turista"
-              ? "self-end rounded-[18px] rounded-br-[6px] bg-[#d6e7ef] text-ink"
-              : "self-start rounded-[18px] rounded-bl-[6px] bg-card text-ink"
-          }`}
-        >
+        <p className={`${balao} whitespace-pre-line`} style={{ background: cor }}>
+          {primeiro && <Rabicho lado={minha ? "dir" : "esq"} cor={cor} />}
           {bloco.texto}
+          {hora && <Hora hora={hora} visto={minha} />}
         </p>
       );
     case "botoes":
+      // respostas rápidas: botões largos embaixo do balão, como nos apps de mensagem
       return (
-        <div className="flex max-w-[90%] flex-wrap gap-2 self-start">
+        <div className="flex w-[80%] max-w-[340px] flex-col gap-1 self-start">
           {bloco.opcoes.map((o) => (
             <button
               key={o.valor}
               onClick={() => aoTocar(o.valor)}
-              className="toque min-h-10 rounded-full border border-field/30 bg-card px-4 text-[14px] font-semibold text-field"
+              className="toque min-h-11 rounded-[8px] bg-white px-4 text-[15px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]"
+              style={{ color: ZAP.barra }}
             >
               {o.rotulo}
             </button>
@@ -109,25 +165,37 @@ function BlocoChat({ bloco, de, aoTocar }: { bloco: Bloco; de: MensagemChat["de"
       );
     case "lugar":
       return (
-        <div className="w-[85%] max-w-[320px] self-start">
-          <CartaoLugar lugar={bloco.lugar} largo />
+        <div className={`${balao} w-[80%] max-w-[320px] p-1`} style={{ background: cor }}>
+          {primeiro && <Rabicho lado={minha ? "dir" : "esq"} cor={cor} />}
+          <CartaoLugar lugar={bloco.lugar} className="w-full" />
         </div>
       );
     case "praia":
       return (
-        <div className="w-[85%] max-w-[320px] self-start">
+        <div className={`${balao} w-[80%] max-w-[320px] p-1`} style={{ background: cor }}>
+          {primeiro && <Rabicho lado={minha ? "dir" : "esq"} cor={cor} />}
           <ListaPraias praias={[bloco.praia]} />
+        </div>
+      );
+    case "praias":
+      return (
+        <div className={`${balao} w-[80%] max-w-[320px] p-1`} style={{ background: cor }}>
+          {primeiro && <Rabicho lado={minha ? "dir" : "esq"} cor={cor} />}
+          <ListaPraias praias={bloco.praias} />
         </div>
       );
     case "alerta":
       return (
-        <div className="flex w-[85%] max-w-[320px] gap-3 self-start rounded-[18px] bg-danger p-3.5 text-white shadow-1">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-white">
-            <Bandeira cor={bloco.alerta.condicao?.bandeira ?? "vermelha"} tamanho={24} mastro="var(--ink)" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[15px] font-bold leading-tight">{tr(bloco.alerta.titulo)}</p>
-            <p className="mt-1 text-[13px] opacity-90">{tr(bloco.alerta.texto)}</p>
+        <div className={`${balao} w-[80%] max-w-[320px]`} style={{ background: cor }}>
+          {primeiro && <Rabicho lado={minha ? "dir" : "esq"} cor={cor} />}
+          <div className="flex gap-3 rounded-[6px] bg-danger p-3 text-white">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white">
+              <Bandeira cor={bloco.alerta.condicao?.bandeira ?? "vermelha"} tamanho={22} mastro="var(--ink)" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[15px] font-bold leading-tight">{tr(bloco.alerta.titulo)}</p>
+              <p className="mt-1 text-[13px] opacity-90">{tr(bloco.alerta.texto)}</p>
+            </div>
           </div>
         </div>
       );
@@ -147,6 +215,7 @@ export function TelaChat({ origemSlug }: { origemSlug?: string | null }) {
   const [estado, setEstado] = useState<EstadoConversa>({});
   const [texto, setTexto] = useState("");
   const [digitando, setDigitando] = useState(false);
+  const [etapa, setEtapa] = useState<string | null>(null);
   const fim = useRef<HTMLDivElement>(null);
 
   // contexto da tela anterior: hotel de origem do QR → município; depois, a boas-vindas
@@ -174,63 +243,97 @@ export function TelaChat({ origemSlug }: { origemSlug?: string | null }) {
     setTexto("");
     setMsgs((x) => [...x, { id: novoId(), de: "turista", blocos: [{ tipo: "texto", texto: m }], em: new Date().toISOString() }]);
     setDigitando(true);
+    setEtapa(null);
     const [r] = await Promise.all([
-      responder(m, idioma, { repo, idioma, municipioId, origem, estado }),
-      new Promise((ok) => setTimeout(ok, 700)), // tempo de "digitando…" para parecer conversa
+      // as etapas do agente aparecem discretas no lugar do "digitando…", embaixo do nome
+      responder(m, idioma, { repo, idioma, municipioId, origem, estado }, msgs, setEtapa),
+      new Promise((ok) => setTimeout(ok, 900)), // tempo mínimo de "digitando…" para parecer conversa
     ]);
     if (r.estado) setEstado(r.estado);
     setDigitando(false);
+    setEtapa(null);
     setMsgs((x) => [...x, { id: novoId(), de: "bot", blocos: r.blocos, em: new Date().toISOString() }]);
   };
 
   const hora = (iso: string) =>
     new Intl.DateTimeFormat(idioma === "pt" ? "pt-BR" : idioma, { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
+  const temTexto = texto.trim().length > 0;
+
   return (
     <div
       ref={raiz}
-      className="fixed inset-x-0 top-0 mx-auto flex h-dvh max-w-[640px] flex-col overflow-hidden bg-sand lg:top-4 lg:h-[calc(100dvh-32px)] lg:rounded-[28px] lg:shadow-3"
-      style={altura ? { height: altura } : undefined}
+      className="fixed inset-x-0 top-0 mx-auto flex h-dvh max-w-[640px] flex-col overflow-hidden lg:top-4 lg:h-[calc(100dvh-32px)] lg:rounded-[20px] lg:shadow-3"
+      style={{ ...(altura ? { height: altura } : {}), backgroundColor: ZAP.fundo, backgroundImage: PAPEL }}
     >
-      <header className="flex items-center gap-3 bg-field px-3 pb-3 pt-[max(12px,env(safe-area-inset-top))] text-white">
+      <header
+        className="flex items-center gap-1.5 px-1.5 pb-2 pt-[max(8px,env(safe-area-inset-top))] text-white"
+        style={{ background: ZAP.barra }}
+      >
         <Link
           href={hrefTurista({ idioma, origem: origemSlug })}
           aria-label={t("voltarTurista")}
-          className="toque flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-white/10"
+          className="toque flex h-11 shrink-0 items-center gap-1 rounded-full pl-1.5 pr-1 hover:bg-white/10"
         >
-          <ArrowLeft size={22} strokeWidth={2.4} />
-        </Link>
-        <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
-          <span aria-hidden className="block h-9 w-[26px] overflow-hidden">
-            <Image src={logo} alt="" priority className="h-9 w-auto max-w-none" />
+          <ArrowLeft size={22} strokeWidth={2.2} />
+          <span className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-white">
+            <Image src={mascote} alt="" aria-hidden priority className="h-8 w-auto" />
           </span>
-        </span>
-        <div className="min-w-0">
-          <p className="truncate text-[17px] font-bold leading-tight">{nomeAssistente(idioma)}</p>
-          <p className="text-[13px] text-field-ink" aria-live="polite">
-            {digitando ? t("digitando") : t("online")}
+        </Link>
+        <div className="min-w-0 flex-1 pl-1">
+          <p className="flex items-center gap-1 text-[17px] font-semibold leading-tight">
+            <span className="truncate">{nomeAssistente(idioma)}</span>
+            <BadgeCheck size={17} strokeWidth={2.2} className="shrink-0 fill-[#25D366] text-[#008069]" aria-label={t("contaComercial")} />
+          </p>
+          <p className="truncate text-[13px] text-white/80" aria-live="polite">
+            {digitando ? (etapa ?? t("digitando")) : t("online")}
           </p>
         </div>
+        {/* ícones decorativos da barra, como no app (sem função na demo) */}
+        <span aria-hidden className="flex items-center gap-5 pr-3 text-white/95">
+          <Video size={22} strokeWidth={2} />
+          <Phone size={20} strokeWidth={2} />
+          <EllipsisVertical size={20} strokeWidth={2} />
+        </span>
       </header>
 
-      <div ref={lista} className="sem-barra min-h-0 flex-auto overflow-y-auto overscroll-contain px-3 py-4 [-webkit-overflow-scrolling:touch]">
-        <div className="flex flex-col gap-2">
-          {msgs.map((m) => (
-            <div key={m.id} className={`aparece flex flex-col gap-1.5 ${m.de === "turista" ? "items-end" : "items-start"}`}>
-              {m.blocos.map((b, i) => (
-                <BlocoChat key={i} bloco={b} de={m.de} aoTocar={enviar} />
-              ))}
-              <span className="px-1 text-[11px] text-ink-2">{hora(m.em)}</span>
-            </div>
-          ))}
+      <div ref={lista} className="sem-barra min-h-0 flex-auto overflow-y-auto overscroll-contain px-3 py-3 [-webkit-overflow-scrolling:touch]">
+        <div className="flex flex-col">
+          <p className="mx-auto mb-3 rounded-[8px] bg-white/90 px-3 py-1 text-[12.5px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ color: ZAP.hora }}>
+            {t("hoje")}
+          </p>
+          {/* aviso amarelo do topo da conversa, como no app */}
+          <p className="mx-auto mb-2 max-w-[88%] rounded-[8px] bg-[#ffeecd] px-3 py-2 text-center text-[12.5px] leading-snug text-[#54656f] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
+            {t("avisoCanal")}
+          </p>
+          {msgs.map((m, i) => {
+            // espaço maior quando muda quem fala, menor entre mensagens seguidas da mesma pessoa
+            const mesmoAutor = i > 0 && msgs[i - 1].de === m.de;
+            const ultimoTexto = m.blocos.map((b) => b.tipo).lastIndexOf("texto");
+            return (
+              <div key={m.id} className={`aparece flex flex-col gap-1 ${mesmoAutor ? "mt-1" : "mt-3"}`}>
+                {m.blocos.map((b, j) => (
+                  <BlocoChat
+                    key={j}
+                    bloco={b}
+                    de={m.de}
+                    primeiro={j === 0 && !mesmoAutor}
+                    hora={j === (ultimoTexto >= 0 ? ultimoTexto : -1) ? hora(m.em) : undefined}
+                    aoTocar={enviar}
+                  />
+                ))}
+              </div>
+            );
+          })}
           {digitando && (
-            <p className="flex w-16 gap-1.5 self-start rounded-[18px] rounded-bl-[6px] bg-card px-4 py-3.5 shadow-1" aria-hidden>
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="size-2 animate-pulse rounded-full bg-ink-2" style={{ animationDelay: `${i * 160}ms` }} />
+            <p className="relative mt-3 flex w-[60px] gap-1.5 self-start rounded-[8px] rounded-tl-none bg-white px-3.5 py-3 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" aria-hidden>
+              <Rabicho lado="esq" cor={ZAP.recebida} />
+              {[0, 1, 2].map((k) => (
+                <span key={k} className="size-2 animate-pulse rounded-full bg-[#8696a0]" style={{ animationDelay: `${k * 160}ms` }} />
               ))}
             </p>
           )}
-          <div ref={fim} />
+          <div ref={fim} className="h-1" />
         </div>
       </div>
 
@@ -239,27 +342,33 @@ export function TelaChat({ origemSlug }: { origemSlug?: string | null }) {
           e.preventDefault();
           void enviar(texto);
         }}
-        className="flex items-center gap-2 bg-sand px-3 pt-2 pb-[max(10px,env(safe-area-inset-bottom))]"
+        className="flex items-end gap-1.5 px-1.5 pt-1.5 pb-[max(8px,env(safe-area-inset-bottom))]"
       >
-        <label htmlFor="chat-msg" className="sr-only">
-          {t("digiteMensagem")}
-        </label>
-        <input
-          id="chat-msg"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder={t("digiteMensagem")}
-          autoComplete="off"
-          enterKeyHint="send"
-          className="h-12 min-w-0 flex-1 rounded-full bg-card px-5 text-[16px] text-ink shadow-1 outline-none placeholder:text-ink-2 focus-visible:outline-2 focus-visible:outline-blue"
-        />
+        <div className="flex min-h-12 min-w-0 flex-1 items-center gap-1 rounded-[24px] bg-white pl-3 pr-2 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
+          <Smile aria-hidden size={24} strokeWidth={1.8} className="shrink-0" style={{ color: ZAP.hora }} />
+          <label htmlFor="chat-msg" className="sr-only">
+            {t("digiteMensagem")}
+          </label>
+          <input
+            id="chat-msg"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            placeholder={t("digiteMensagem")}
+            autoComplete="off"
+            enterKeyHint="send"
+            className="h-12 min-w-0 flex-1 bg-transparent px-1.5 text-[16px] text-[#111b21] outline-none placeholder:text-[#8696a0]"
+          />
+          <Paperclip aria-hidden size={22} strokeWidth={1.8} className="shrink-0 -rotate-45" style={{ color: ZAP.hora }} />
+        </div>
         <button
           type="submit"
           aria-label={t("enviarMensagem")}
-          disabled={!texto.trim() || digitando}
-          className="toque flex size-12 shrink-0 items-center justify-center rounded-full bg-field text-white disabled:opacity-50"
+          disabled={!temTexto || digitando}
+          className="toque flex size-12 shrink-0 items-center justify-center rounded-full text-white shadow-[0_1px_2px_rgba(11,20,26,0.2)]"
+          style={{ background: ZAP.barra }}
         >
-          <SendHorizontal size={20} strokeWidth={2.4} />
+          {/* sem texto o botão mostra o microfone, como no app; com texto vira "enviar" */}
+          {temTexto ? <SendHorizontal size={21} strokeWidth={2.2} /> : <Mic size={22} strokeWidth={2.2} />}
         </button>
       </form>
     </div>

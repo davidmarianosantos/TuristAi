@@ -2,12 +2,16 @@
 
 import { Ambulance, Flame, LifeBuoy, Siren } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ChamadoSOS, Estabelecimento, Sessao, TipoSOS } from "@/data/tipos";
+import type { ChamadoSOS, Estabelecimento, FichaSOS, Sessao, TipoSOS } from "@/data/tipos";
 import type { Chave } from "@/i18n/textos";
+import { chamadoDaFicha } from "@/lib/agente/chamado";
+import { chamarAgente } from "@/lib/agente/cliente";
 import { useIdioma } from "@/lib/idioma";
 import { pedirLocalizacao } from "@/lib/localizacao";
 import { triarSOS, type Triagem } from "@/lib/triagem";
+import { SERVICOS, servicoDe } from "@/lib/central/servicos";
 import { Folha } from "@/components/ui/Folha";
+import { EtapasAgente } from "./Assistente";
 import { useRepositorio } from "./RepositorioContext";
 
 const FRASES: { tipo: Exclude<TipoSOS, "outro">; chave: Chave }[] = [
@@ -17,11 +21,11 @@ const FRASES: { tipo: Exclude<TipoSOS, "outro">; chave: Chave }[] = [
   { tipo: "documentos", chave: "fDocumentos" },
 ];
 
-/** Barra flutuante: sempre à mão, sem pesar na página. */
+/** Barra flutuante no celular e no tablet; no desktop o SOS mora na coluna lateral (CartaoSOS). */
 export function RodapeSOS({ aoAbrir }: { aoAbrir(): void }) {
   const { t } = useIdioma();
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pb-[max(12px,env(safe-area-inset-bottom))] lg:right-[min(40vw,560px)]">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pb-[max(12px,env(safe-area-inset-bottom))] lg:hidden">
       <div className="pointer-events-auto mx-auto flex max-w-[560px] items-center justify-between gap-3 rounded-full border border-line/80 bg-card/85 py-2 pl-5 pr-2 shadow-3 backdrop-blur-xl">
         <span className="flex items-center gap-2 text-[15px] font-semibold text-ink">
           <LifeBuoy size={18} strokeWidth={2.4} className="text-danger" />
@@ -38,7 +42,22 @@ export function RodapeSOS({ aoAbrir }: { aoAbrir(): void }) {
   );
 }
 
-const TELEFONES: { n: string; c: Chave; icone: typeof Siren; cor: string }[] = [
+/** SOS na barra do topo do desktop: sempre à vista, sem cobrir o conteúdo. */
+export function BotaoSOSTopo({ aoAbrir }: { aoAbrir(): void }) {
+  const { t } = useIdioma();
+  return (
+    <button
+      onClick={aoAbrir}
+      aria-label={`${t("sos")}: ${t("precisaAjuda")}`}
+      className="toque flex h-10 items-center gap-1.5 rounded-full bg-danger px-4 text-[14px] font-extrabold tracking-[0.04em] text-white shadow-1 hover:brightness-110"
+    >
+      <LifeBuoy size={17} strokeWidth={2.6} />
+      {t("sos")}
+    </button>
+  );
+}
+
+export const TELEFONES: { n: string; c: Chave; icone: typeof Siren; cor: string }[] = [
   { n: "190", c: "policia", icone: Siren, cor: "#0b4f6c" },
   { n: "192", c: "samu", icone: Ambulance, cor: "#c62828" },
   { n: "193", c: "bombeiros", icone: Flame, cor: "#b45309" },
@@ -52,13 +71,13 @@ export function Telefones({ grandes = false }: { grandes?: boolean }) {
         <a
           key={n}
           href={`tel:${n}`}
-          className={`toque flex flex-col items-start gap-2 rounded-[16px] border border-line bg-card p-3.5 text-[13px] font-medium text-ink-2 ${grandes ? "py-4" : ""}`}
+          className={`toque flex flex-col items-start gap-2 rounded-[16px] border border-line bg-card p-3.5 text-[13px] font-medium text-ink-2 lg:flex-row lg:items-center lg:gap-4 lg:p-5 lg:text-[14px] ${grandes ? "py-4" : ""}`}
         >
-          <span className="flex size-9 items-center justify-center rounded-full" style={{ background: `${cor}1a`, color: cor }}>
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full lg:size-12" style={{ background: `${cor}1a`, color: cor }}>
             <Icone size={18} strokeWidth={2.4} />
           </span>
           <span>
-            <b className={`block font-extrabold leading-none tracking-[-0.03em] text-ink ${grandes ? "text-[28px]" : "text-[24px]"}`}>{n}</b>
+            <b className={`block font-extrabold leading-none tracking-[-0.03em] text-ink ${grandes ? "text-[28px]" : "text-[24px] lg:text-[30px]"}`}>{n}</b>
             {t(c)}
           </span>
         </a>
@@ -69,8 +88,10 @@ export function Telefones({ grandes = false }: { grandes?: boolean }) {
 
 // Fluxo: escolher o que houve, triagem na hora; urgente pede confirmação antes de enviar,
 // não urgente resolve aqui com opção de pedir uma pessoa. Nada sai sem o turista confirmar.
-type Fase = "escolher" | "confirmar" | "resolvido" | "enviado" | "erro";
-type Pedido = { tipo: TipoSOS; texto: string; triagem: Triagem; urgencia: Triagem["urgencia"] };
+// Texto livre passa pelo agente de SOS: urgente vai direto à Central (escrever é intenção clara);
+// os botões de frase pronta continuam pedindo confirmação, porque um toque errado acontece.
+type Fase = "escolher" | "analisando" | "confirmar" | "resolvido" | "enviado" | "erro";
+type Pedido = { tipo: TipoSOS; texto: string; triagem: Triagem; urgencia: Triagem["urgencia"]; ficha?: FichaSOS };
 
 export function FolhaSOS({
   aberta,
@@ -94,6 +115,8 @@ export function FolhaSOS({
   const [enviando, setEnviando] = useState(false);
   const [chamado, setChamado] = useState<ChamadoSOS | null>(null);
   const [comLocal, setComLocal] = useState(false);
+  const [etapas, setEtapas] = useState<string[]>([]);
+  const [orientacao, setOrientacao] = useState("");
 
   // acompanha o status do chamado enviado
   useEffect(() => {
@@ -108,7 +131,55 @@ export function FolhaSOS({
     mensagemPt: p.triagem.mensagemPt,
     idiomaOriginal: idioma,
     origemId: origem?.id,
+    // a triagem já sugere o serviço da Central e explica o porquê ao atendente
+    servico: p.triagem.servico,
+    motivoTriagem: p.triagem.motivo,
+    ...(p.ficha ? { ficha: p.ficha } : {}),
   });
+
+  const triarComAgente = async (texto: string) => {
+    setFase("analisando");
+    setEtapas([]);
+    setOrientacao("");
+    // a localização é pedida em paralelo com a triagem, para não atrasar o envio urgente
+    const posicao = enviarLocal ? pedirLocalizacao(6000) : Promise.resolve(null);
+    let ficha: FichaSOS | null = null;
+    try {
+      await chamarAgente("sos", { texto, idioma, hotel: origem?.nome ?? null, local: null }, (e) => {
+        if (e.tipo === "etapa") setEtapas((x) => [...x, e.texto]);
+        if (e.tipo === "ficha") ficha = e.ficha;
+        if (e.tipo === "texto") setOrientacao((x) => x + e.delta);
+      });
+    } catch {}
+    const f = ficha as FichaSOS | null;
+    if (!f) return escolher("outro", texto); // sem rede: as regras locais fazem a triagem
+    const triagem: Triagem = {
+      urgencia: f.urgencia,
+      mensagemPt: f.mensagemPt,
+      servico: f.servico,
+      motivo: f.motivo,
+      resolucao: f.passos.length ? { passos: f.passos.map((x) => ({ pt: x, es: x, en: x })) } : undefined,
+    };
+    const p: Pedido = { tipo: "outro", texto, triagem, urgencia: f.urgencia, ficha: f };
+    setPedido(p);
+    const sessaoId = sessao?.id ?? "sem-sessao";
+    if (f.urgencia !== "urgente") {
+      setFase("resolvido");
+      void repo.enviarSOS(chamadoDaFicha(f, texto, sessaoId, origem?.id)).catch(() => {});
+      return;
+    }
+    const local = await posicao;
+    try {
+      const comFicha = { ...f, local };
+      const c = await repo.enviarSOS(chamadoDaFicha(comFicha, texto, sessaoId, origem?.id));
+      setPedido({ ...p, ficha: comFicha });
+      setComLocal(!!local);
+      setChamado(c);
+      setFase("enviado");
+    } catch {
+      setFase("erro");
+    }
+  };
 
   const escolher = (tipo: TipoSOS, texto: string) => {
     const triagem = triarSOS(tipo, tipo === "outro" ? texto : null, idioma);
@@ -157,6 +228,7 @@ export function FolhaSOS({
 
   const titulo = {
     escolher: t("oQueAconteceu"),
+    analisando: t("oQueAconteceu"),
     confirmar: pedido?.urgencia === "urgente" ? t("triagemUrgente") : t("avisarCentralTitulo"),
     resolvido: t("resolvidoAqui"),
     enviado: t("centralRecebeu"),
@@ -188,7 +260,7 @@ export function FolhaSOS({
                   className="flex gap-2"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (livre.trim()) escolher("outro", livre.trim());
+                    if (livre.trim()) void triarComAgente(livre.trim());
                   }}
                 >
                   <label htmlFor="sos-livre" className="sr-only">
@@ -209,6 +281,17 @@ export function FolhaSOS({
               )}
             </div>
           </>
+        )}
+
+        {fase === "analisando" && (
+          <div aria-live="polite" className="flex flex-col gap-4">
+            <EtapasAgente etapas={etapas} pronto={false} />
+            {orientacao && <p className="aparece rounded-[18px] bg-surface px-4 py-3 text-[16px] font-semibold leading-snug">{orientacao}</p>}
+            <div>
+              <p className="mb-2 text-[13px] font-semibold text-ink-2">{t("ligarAgora")}</p>
+              <Telefones />
+            </div>
+          </div>
         )}
 
         {fase === "confirmar" && pedido && (
@@ -248,10 +331,16 @@ export function FolhaSOS({
           </div>
         )}
 
-        {fase === "resolvido" && pedido?.triagem.resolucao && (
+        {fase === "resolvido" && pedido && (
           <div className="flex flex-col gap-3">
+            {pedido.ficha && (
+              <>
+                <EtapasAgente etapas={etapas} pronto modo={pedido.ficha.modo} />
+                <p className="text-[16px] font-semibold leading-snug">{orientacao || pedido.ficha.orientacao}</p>
+              </>
+            )}
             <ol className="flex flex-col gap-2">
-              {pedido.triagem.resolucao.passos.map((p, i) => (
+              {(pedido.triagem.resolucao?.passos ?? []).map((p, i) => (
                 <li key={i} className="grid grid-cols-[24px_1fr] gap-2 rounded-[16px] bg-surface px-4 py-3 text-[15px]">
                   <b className="font-extrabold">{i + 1}.</b>
                   {tr(p)}
@@ -273,6 +362,14 @@ export function FolhaSOS({
 
         {fase === "enviado" && chamado && (
           <div className="flex flex-col gap-4">
+            {pedido?.ficha && (
+              <div className="flex flex-col gap-2">
+                <EtapasAgente etapas={etapas} pronto modo={pedido.ficha.modo} />
+                <p className="rounded-[18px] bg-danger-bg px-4 py-3 text-[16px] font-semibold leading-snug text-danger-deep">
+                  {orientacao || pedido.ficha.orientacao}
+                </p>
+              </div>
+            )}
             {chamado.urgencia === "urgente" && (
               <span className="self-start rounded-full bg-danger-bg px-3 py-1 text-[13px] font-extrabold text-danger-ink">{t("urgente")}</span>
             )}
@@ -286,6 +383,16 @@ export function FolhaSOS({
                   </p>
                 </div>
               </li>
+              {(chamado.historico ?? [])
+                .filter((e) => e.tipo === "encaminhado" && e.servico)
+                .map((e, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span className="mt-1 size-3.5 shrink-0 rounded-full bg-blue" />
+                    <p className="text-[15px] font-semibold">
+                      {t("encaminhadoPara", { servico: SERVICOS[e.servico!].nome[idioma] })} <span className="font-normal text-ink-2">· {hora(e.em)}</span>
+                    </p>
+                  </li>
+                ))}
               <li className="flex gap-3">
                 {chamado.status === "enviado" ? (
                   <span className="mt-1 size-3.5 shrink-0 animate-pulse rounded-full border-2 border-ink-2" />
@@ -293,11 +400,31 @@ export function FolhaSOS({
                   <span className="mt-1 size-3.5 shrink-0 rounded-full bg-ok" />
                 )}
                 <div aria-live="polite">
-                  <p className="text-[15px] font-semibold">{chamado.status === "enviado" ? t("aguardando") : t("emAtendimento")}</p>
-                  <p className="text-[13px] text-ink-2">{chamado.status === "enviado" ? t("atualizaSozinha") : t("atendenteCaminho")}</p>
+                  <p className="text-[15px] font-semibold">
+                    {chamado.status === "enviado" && t("aguardando")}
+                    {chamado.status === "em_atendimento" &&
+                      (servicoDe(chamado) ? t("servicoCuidando", { servico: SERVICOS[servicoDe(chamado)!].nome[idioma] }) : t("emAtendimento"))}
+                    {chamado.status === "encerrado" && t("atendimentoEncerrado")}
+                  </p>
+                  <p className="text-[13px] text-ink-2">
+                    {chamado.status === "enviado" && t("atualizaSozinha")}
+                    {chamado.status === "em_atendimento" && (servicoDe(chamado) ? t("atualizaSozinha") : t("atendenteCaminho"))}
+                    {chamado.status === "encerrado" && t("encerradoTexto")}
+                  </p>
                 </div>
               </li>
             </ol>
+            {(chamado.respostas?.length ?? 0) > 0 && (
+              <div aria-live="polite" className="flex flex-col gap-2">
+                <p className="text-[13px] font-semibold text-ink-2">{t("mensagensCentral")}</p>
+                {chamado.respostas!.map((r, i) => (
+                  <p key={i} className="aparece rounded-[18px] rounded-tl-[6px] bg-[#e3f0f5] px-4 py-3 text-[15px] leading-snug text-ink">
+                    {r.texto[idioma]}
+                    <span className="mt-1 block text-[12px] text-ink-2">{hora(r.em)}</span>
+                  </p>
+                ))}
+              </div>
+            )}
             <p className="rounded-[16px] bg-surface px-4 py-3 text-[15px]">
               {comLocal ? t("localEnviado") : t("semLocal")}
               {origem && (

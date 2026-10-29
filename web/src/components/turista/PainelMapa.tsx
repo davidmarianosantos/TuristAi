@@ -41,7 +41,7 @@ export function PainelMapa({
   const pino = pinos.find((p) => p.id === sel);
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div className="relative isolate flex h-full min-h-0 flex-col">
       <div role="toolbar" aria-label={t("mapa")} className="sem-barra absolute inset-x-0 top-0 z-[500] flex gap-2 overflow-x-auto px-4 py-3">
         {FILTROS.map(([f, c]) => (
           <button
@@ -73,7 +73,7 @@ export function PainelMapa({
               <path d="M3 3l12 12M15 3L3 15" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
             </svg>
           </button>
-          {pino.tipo === "lugar" ? <CartaoLugar lugar={pino.lugar} de={de} largo /> : <ListaPraias praias={[pino.praia]} />}
+          {pino.tipo === "lugar" ? <CartaoLugar lugar={pino.lugar} de={de} compacto className="w-full" /> : <ListaPraias praias={[pino.praia]} />}
         </div>
       )}
     </div>

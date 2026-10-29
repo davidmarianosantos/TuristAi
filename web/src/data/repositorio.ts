@@ -1,8 +1,10 @@
-import { CONDICOES, ESTABELECIMENTOS, LOCAIS, MUNICIPIOS, MUNICIPIO_PADRAO } from "./seed";
+import { ATRATIVOS, CONDICOES, ESTABELECIMENTOS, LOCAIS, MUNICIPIOS, MUNICIPIO_PADRAO } from "./seed";
 import type {
   Alerta,
+  Atrativo,
   ChamadoSOS,
   Estabelecimento,
+  EventoChamado,
   Municipio,
   PraiaHoje,
   Sessao,
@@ -13,24 +15,41 @@ import type {
 /** A única porta das telas para os dados. Hoje é mock; depois, Supabase. */
 export interface Repositorio {
   municipio(id: string): Promise<Municipio>;
+  /** os municípios da Costa do Cacau */
+  municipios(): Promise<Municipio[]>;
+  /** pontos turísticos e passeios do município, na ordem de destaque */
+  atrativos(municipioId: string): Promise<Atrativo[]>;
   alertasAtivos(municipioId: string): Promise<Alerta[]>;
   praiasHoje(municipioId: string): Promise<PraiaHoje[]>;
   estabelecimentosComSelo(municipioId: string): Promise<Estabelecimento[]>;
   estabelecimentoPorSlug(slug: string): Promise<Estabelecimento | null>;
+  estabelecimentoPorId(id: string): Promise<Estabelecimento | null>;
   criarSessao(dados: Omit<Sessao, "id">): Promise<Sessao>;
   enviarSOS(dados: Omit<ChamadoSOS, "id" | "status" | "criadoEm"> & { status?: StatusChamado }): Promise<ChamadoSOS>;
   /** avisa quando os alertas do município mudam; devolve a função para cancelar */
   aoMudarAlertas(municipioId: string, cb: (alertas: Alerta[]) => void): () => void;
+  /** avisa quando o chamado muda (status, serviço, mensagens da Central, histórico) */
   aoMudarChamado(id: string, cb: (c: ChamadoSOS) => void): () => void;
+  // ---- Central Integrada ----
+  chamados(): Promise<ChamadoSOS[]>;
+  /** avisa a cada mudança em qualquer chamado; devolve a função para cancelar */
+  aoMudarChamados(cb: (lista: ChamadoSOS[]) => void): () => void;
+  /** aplica a mudança e, se vier, registra o evento no histórico do chamado */
+  atualizarChamado(
+    id: string,
+    mudanca: Partial<Omit<ChamadoSOS, "id" | "sessaoId" | "criadoEm">>,
+    evento?: Omit<EventoChamado, "em">,
+  ): Promise<ChamadoSOS>;
 }
 
-/** Ações de ensaio da demo (depois viram as telas /gestao e /central). */
+/** Ações de ensaio da demo (a tela /ensaio usa para preparar e reiniciar a apresentação). */
 export interface Ensaio {
   publicarAlerta(a: Alerta): void;
   limparAlertas(): void;
   mudarStatusChamado(id: string, status: StatusChamado): void;
   ultimoChamado(): ChamadoSOS | null;
   aoQualquerChamado(cb: (c: ChamadoSOS) => void): () => void;
+  limparChamados(): void;
 }
 
 type Estado = { alertas: Alerta[]; chamados: ChamadoSOS[] };
@@ -100,6 +119,12 @@ export function criarRepositorioMock(): Repositorio & Ensaio {
     async municipio(id) {
       return MUNICIPIOS.find((m) => m.id === id) ?? MUNICIPIOS.find((m) => m.id === MUNICIPIO_PADRAO)!;
     },
+    async municipios() {
+      return [...MUNICIPIOS];
+    },
+    async atrativos(municipioId) {
+      return ATRATIVOS.filter((a) => a.municipioId === municipioId);
+    },
     async alertasAtivos(municipioId) {
       return ativos(municipioId);
     },
@@ -123,15 +148,21 @@ export function criarRepositorioMock(): Repositorio & Ensaio {
     async estabelecimentoPorSlug(slug) {
       return ESTABELECIMENTOS.find((e) => e.slug === slug) ?? null;
     },
+    async estabelecimentoPorId(id) {
+      return ESTABELECIMENTOS.find((e) => e.id === id) ?? null;
+    },
     async criarSessao(dados) {
       return { id: uid("s"), ...dados };
     },
     async enviarSOS(dados) {
+      const criadoEm = new Date().toISOString();
+      const status = dados.status ?? (dados.urgencia === "nao_urgente" ? "resolvido_ia" : "enviado");
       const chamado: ChamadoSOS = {
         id: uid("sos"),
-        criadoEm: new Date().toISOString(),
+        criadoEm,
         ...dados,
-        status: dados.status ?? (dados.urgencia === "nao_urgente" ? "resolvido_ia" : "enviado"),
+        status,
+        historico: [{ em: criadoEm, tipo: status === "resolvido_ia" ? "resolvido_ia" : "aberto", servico: dados.servico }],
       };
       estado = { ...estado, chamados: [...estado.chamados, chamado] };
       mudou();
@@ -144,11 +175,30 @@ export function criarRepositorioMock(): Repositorio & Ensaio {
       let ultimo = "";
       return assinar(() => {
         const c = estado.chamados.find((x) => x.id === id);
-        if (c && c.status !== ultimo) {
-          ultimo = c.status;
+        const chave = c ? JSON.stringify([c.status, c.servico, c.atendente, c.respostas?.length, c.historico?.length]) : "";
+        if (c && chave !== ultimo) {
+          ultimo = chave;
           cb(c);
         }
       });
+    },
+    async chamados() {
+      return [...estado.chamados];
+    },
+    aoMudarChamados(cb) {
+      return assinar(() => cb([...estado.chamados]));
+    },
+    async atualizarChamado(id, mudanca, evento) {
+      const atual = estado.chamados.find((c) => c.id === id);
+      if (!atual) throw new Error(`chamado ${id} não existe`);
+      const novo: ChamadoSOS = {
+        ...atual,
+        ...mudanca,
+        historico: evento ? [...(atual.historico ?? []), { em: new Date().toISOString(), ...evento }] : atual.historico,
+      };
+      estado = { ...estado, chamados: estado.chamados.map((c) => (c.id === id ? novo : c)) };
+      mudou();
+      return novo;
     },
 
     publicarAlerta(a) {
@@ -161,7 +211,29 @@ export function criarRepositorioMock(): Repositorio & Ensaio {
       mudou();
     },
     mudarStatusChamado(id, status) {
-      estado = { ...estado, chamados: estado.chamados.map((c) => (c.id === id ? { ...c, status } : c)) };
+      const em = new Date().toISOString();
+      estado = {
+        ...estado,
+        chamados: estado.chamados.map((c) =>
+          c.id !== id
+            ? c
+            : {
+                ...c,
+                status,
+                atendidoEm: status === "em_atendimento" ? (c.atendidoEm ?? em) : c.atendidoEm,
+                encerradoEm: status === "encerrado" ? em : c.encerradoEm,
+                atendente: status === "em_atendimento" ? (c.atendente ?? "Ensaio da demo") : c.atendente,
+                historico: [
+                  ...(c.historico ?? []),
+                  { em, tipo: status === "em_atendimento" ? "assumido" : status === "encerrado" ? "encerrado" : "aberto", texto: "Ensaio da demo" },
+                ],
+              },
+        ),
+      };
+      mudou();
+    },
+    limparChamados() {
+      estado = { ...estado, chamados: [] };
       mudou();
     },
     ultimoChamado() {

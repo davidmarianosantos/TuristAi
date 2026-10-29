@@ -9,7 +9,8 @@ export type Bloco =
   | { tipo: "botoes"; opcoes: { rotulo: string; valor: string }[] }
   | { tipo: "lugar"; lugar: Estabelecimento }
   | { tipo: "alerta"; alerta: Alerta }
-  | { tipo: "praia"; praia: PraiaHoje };
+  | { tipo: "praia"; praia: PraiaHoje }
+  | { tipo: "praias"; praias: PraiaHoje[] };
 
 export type MensagemChat = {
   id: string;

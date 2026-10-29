@@ -41,7 +41,7 @@ export const Alertas = forwardRef<HTMLElement, { alertas: Alerta[]; novos: Set<s
         : t("alertasDeHoje");
 
   return (
-    <section ref={ref} aria-labelledby="t-alertas" className="relative z-10 -mt-7 scroll-mt-20 px-4 lg:px-0">
+    <section ref={ref} aria-labelledby="t-alertas" className="relative z-10 -mt-7 scroll-mt-20 px-4 lg:absolute lg:bottom-14 lg:right-[max(48px,calc((100%-1280px)/2+32px))] lg:mt-0 lg:w-[460px] lg:px-0 xl:w-[500px]">
       <h2 id="t-alertas" className="sr-only">
         {t("alertasDeHoje")}
       </h2>

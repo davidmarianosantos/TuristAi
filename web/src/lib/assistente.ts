@@ -96,9 +96,9 @@ export async function responder(
       return {
         intencao,
         texto: t(
-          `Hoje faz ${TEMPO_DEMO.temperatura}° com sol. A maré alta é às ${TEMPO_DEMO.mareAlta}; a baixa, cerca de 6 horas depois. [DEMO]`,
-          `Hoy hace ${TEMPO_DEMO.temperatura}° y sol. La marea alta es a las ${TEMPO_DEMO.mareAlta}; la baja, unas 6 horas después. [DEMO]`,
-          `Today it's ${TEMPO_DEMO.temperatura}° and sunny. High tide is at ${TEMPO_DEMO.mareAlta}; low tide about 6 hours later. [DEMO]`,
+          `Hoje faz ${TEMPO_DEMO.temperatura}° com sol. A maré alta é às ${TEMPO_DEMO.mareAlta}; a baixa, cerca de 6 horas depois.`,
+          `Hoy hace ${TEMPO_DEMO.temperatura}° y sol. La marea alta es a las ${TEMPO_DEMO.mareAlta}; la baja, unas 6 horas después.`,
+          `Today it's ${TEMPO_DEMO.temperatura}° and sunny. High tide is at ${TEMPO_DEMO.mareAlta}; low tide about 6 hours later.`,
         ),
       };
     case "transporte": {
@@ -117,9 +117,9 @@ export async function responder(
       return {
         intencao,
         texto: t(
-          "Para urgência médica, ligue para o 192 (SAMU). Farmácia mais próxima: Farmácia Central [DEMO], a 300 m do centro.",
-          "Para una urgencia médica, llama al 192 (SAMU). Farmacia más cercana: Farmácia Central [DEMO], a 300 m del centro.",
-          "For a medical emergency, call 192 (ambulance). Nearest pharmacy: Farmácia Central [DEMO], 300 m from downtown.",
+          "Para urgência médica, ligue para o 192 (SAMU). Em outros casos, a recepção da sua hospedagem indica a farmácia mais próxima.",
+          "Para una urgencia médica, llama al 192 (SAMU). En otros casos, la recepción de tu alojamiento te indica la farmacia más cercana.",
+          "For a medical emergency, call 192 (ambulance). Otherwise, your hotel's front desk can point you to the nearest pharmacy.",
         ),
       };
     default:
