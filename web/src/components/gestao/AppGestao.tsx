@@ -232,11 +232,12 @@ export function AppGestao() {
               />
             </section>
           </div>
-          {/* acompanhamento ao vivo: o que está acontecendo agora na região */}
-          <div className="grid min-w-0 content-start gap-4">
+          {/* acompanhamento ao vivo: o que está acontecendo agora na região.
+              self-stretch + flex-1 no último cartão fecham a coluna junto com a da esquerda */}
+          <div className="flex min-w-0 flex-col gap-4 xl:self-stretch">
             <PainelSOS chamados={chamados} origens={origens} agoraMs={agoraMs} />
             <Balneabilidade praias={praiasEscopo} nomeEscopo={nomeEscopo} />
-            <GraficoChamadosServico chamados={chamados} agora={relogio ?? agora} />
+            <GraficoChamadosServico chamados={chamados} agora={relogio ?? agora} className="xl:flex-1" />
           </div>
         </div>
         <div className="mt-4">

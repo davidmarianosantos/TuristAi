@@ -79,7 +79,16 @@ export function GraficoAlcanceIdioma({
 }
 
 /** SOS abertos hoje, pelo serviço responsável (a mesma regra de roteamento da Central). */
-export function GraficoChamadosServico({ chamados, agora }: { chamados: ChamadoSOS[]; agora: Date }) {
+export function GraficoChamadosServico({
+  chamados,
+  agora,
+  className,
+}: {
+  chamados: ChamadoSOS[];
+  agora: Date;
+  /** o painel usa para o cartão fechar junto com a coluna da esquerda */
+  className?: string;
+}) {
   const hoje = chamados.filter((c) => ehHoje(c.criadoEm, agora));
   const contar = (s: Servico | undefined) => hoje.filter((c) => servicoDe(c) === s).length;
   const linhas: LinhaBarra[] = SERVICOS_ORDEM.map((s) => {
@@ -103,7 +112,11 @@ export function GraficoChamadosServico({ chamados, agora }: { chamados: ChamadoS
       dica: `${plural(aDefinir, "chamado", "chamados")} sem serviço definido pela triagem: vão para a triagem humana`,
     });
   return (
-    <Cartao titulo="Chamados por serviço" contexto={`SOS de hoje · ${plural(hoje.length, "chamado", "chamados")} na região`}>
+    <Cartao
+      titulo="Chamados por serviço"
+      contexto={`SOS de hoje · ${plural(hoje.length, "chamado", "chamados")} na região`}
+      className={className}
+    >
       {hoje.length === 0 ? (
         <Vazio titulo="Nenhum SOS hoje na região" detalhe="Os chamados chegam da tela do turista e do WhatsApp à Central Integrada." />
       ) : (

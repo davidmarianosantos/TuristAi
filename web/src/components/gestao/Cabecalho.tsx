@@ -24,7 +24,7 @@ export function Cabecalho({
 }) {
   return (
     <header className="bg-(--ba-azul) text-white shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
-      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
+      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-10 gap-y-3 px-4 py-4 sm:px-6 xl:gap-x-16">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-white">
             <Image src="/img/logo-turistai.png" alt="" width={36} height={36} className="size-9 object-contain" />
@@ -37,7 +37,7 @@ export function Cabecalho({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
           <p className="text-[13px] leading-tight text-white/90" aria-live="off">
             {agora ? (
               <>
