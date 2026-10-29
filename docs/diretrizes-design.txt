@@ -1,0 +1,156 @@
+Relatório de Elaboração de Design: Identidade Visual e UI/UX
+Projeto: APL de Turismo da Costa do Cacau
+
+Fase do Design Thinking: Seleção de Ideias, Prototipagem e Identidade Visual (Iniciativa Estatal vs. Iniciativa Privada)
+
+1. Diretrizes Estratégicas para a Iniciativa Estatal
+A vertente estatal deve priorizar a utilidade pública, a acessibilidade universal (WCAG), a transparência e a facilidade de navegação, espelhando a clareza e a funcionalidade do portal ConectaSUS. O design é focado na eficiência do cidadão e do turista em encontrar serviços, rotas, informações institucionais e regulamentações.
+
+Identidade Visual e Estilo Artístico (Minimalista e Simplório)
+Estilo Artístico: Flat Design minimalista com influências de Swiss Style (foco em tipografia clara, grids rigorosos e hierarquia funcional). Ausência de sombras complexas, gradientes excessivos ou elementos ornamentais desnecessários.
+
+Tipografia (Fontes):
+
+Títulos e Cabeçalhos: Inter ou Roboto (pesos Bold / Semi-Bold). Oferecem excelente legibilidade em telas de qualquer resolução.
+
+Corpo de Texto e Dados: Open Sans ou Noto Sans (pesos Regular / Medium). Altura de x (x-height) elevada para facilitar a leitura por idosos ou pessoas com baixa visão.
+
+Paleta de Cores Institucional:
+
+Azul Governamental / Confiança: #0B4F6C (Cor Primária - botões principais, cabeçalhos).
+
+Verde Biodiversidade / Sustentabilidade: #2E7D32 (Cor Secundária - destaques de preservação e turismo verde).
+
+Cinza Neutro / Fundo: #F8F9FA (Superfície limpa para evitar fadiga visual).
+
+Grafite Escuro / Texto: #212529 (Alto contraste sobre fundos claros).
+
+Moldes e Layout (UI Patterns):
+
+Grid: Grid rígido de 12 colunas com margens e espaçamentos consistentes (base de 8px).
+
+Componentes: Cartões estruturados (cards) com bordas finas (1px solid #E0E0E0), botões com cantos ligeiramente arredondados (4px a 8px) e ícones informativos padronizados.
+
+Figuras Representativas e Elementos Gráficos:
+
+Iconografia: Ícones em vetor de linha simples (Line Art de 2px de espessura) representando serviços (mapas, ônibus, centro de informação, patrimônio).
+
+Símbolo Regional Minimalista: Vetorização geométrica e simplificada do fruto do cacau ou de uma onda contínua em formato monotônico, usada apenas em marcas d'água sutis ou no logotipo oficial.
+
+Fluxo de Uso Base e Interações (Usuários Externos - Estatal)
+[Início / Portal Geral] 
+       │
+       ├──► [Seleção de Perfil / Acesso Rápido] ──► (Turista / Cidadão / Empreendedor)
+       │
+       ├──► [Busca Global de Serviços e Roteiros]
+       │
+       └──► [Navegação Modular]
+              ├──► Guias & Atrativos Públicos
+              ├──► Transportes e Acessibilidade
+              ├──► Serviços de Saúde e Segurança
+              └──► Ouvidoria / Agendamentos
+Passo a Passo da Interação (UI/UX)
+Entrada e Orientação (Landing Page Incial):
+
+Hero Section: Banner fixo limpo com barra de pesquisa centralizada ("O que você procura na Costa do Cacau hoje?").
+
+Atalhos Rápidos: Módulos em grade com os 4 serviços públicos mais buscados (Mapa de Praias/Atrativos, Linhas de Transporte, Centros de Apoio ao Turista, Emergência/Saúde).
+
+Filtragem e Consulta:
+
+O usuário clica em um atrativo (ex: Parque Estadual da Serra do Conduru).
+
+UI Component: Abertura de gaveta lateral (Drawer) ou página simples carregando dados oficiais: horário de funcionamento, regras ambientais, rota de acesso e contato de guias credenciados.
+
+Ação do Usuário (Formulários / Solicitações):
+
+Processo de formulário em passos sequenciais (Stepper UI - Passo 1: Dados; Passo 2: Data; Passo 3: Confirmação).
+
+Confirmação e Feedback:
+
+Tela de sucesso minimalista gerando um comprovante simples com QR Code para acesso offline ou validação em parques e postos de atendimento.
+
+2. Diretrizes Estratégicas para a Iniciativa Privada
+A vertente privada busca o engajamento emocional, o desejo de consumo e a experiência imersiva de resort e ecoturismo de luxo. Inspira-se em empreendimentos renomados da Costa do Cacau (ex: resorts de Comandatuba, Itacaré e Ilhéus), unindo sofisticação, brasilidade e identidade regional praiana.
+
+Identidade Visual e Estilo Artístico (Praiano, Identitário e Tropical)
+Estilo Artístico: Warm Organic & Resort Luxury (Moderno Orgânico). Utiliza fotografias imersivas de alta resolução (full-bleed), texturas suaves de areia/madeira, formas orgânicas/fluidadas nas seções e microinterações elegantes.
+
+Tipografia (Fontes):
+
+Títulos e Frases de Efeito: Playfair Display, Cormorant Garamond ou Volkhov. Fontes serifadas elegantes que remetem ao charme clássico das fazendas de cacau e ao luxo tropical dos resorts.
+
+Corpo de Texto e Ações: Montserrat, Plus Jakarta Sans ou Lato (pesos Light, Regular e Medium). Fontes sem serifa modernas com bom espaçamento entre letras (letter-spacing) para conferir sofisticação.
+
+Paleta de Cores Identitária Praiana:
+
+Terracota / Cacau Maduro: #7B3F00 ou #8B4513 (Símbolo da terra e do cacau).
+
+Dourado / Sol e Cacau Amarelo: #E5A93C ou #DAA520 (Sofisticação e energia tropical).
+
+Verde Mata Atlântica / Cabruca: #1B4332 (Conexão com a natureza preservada).
+
+Azul Mar Profundo / Turquesa: #007791 (Remete às águas da costa de Itacaré/Canavieiras).
+
+Areia Quente / Fundo Orgânico: #F7F4EF (Substitui o branco puro para criar sensação acolhedora).
+
+Moldes e Layout (UI Patterns):
+
+Grid: Layout fluido e assimétrico controlado, com uso de cartões flutuantes sobrepostos a fotos de fundo.
+
+Componentes: Botões em estilo pílula (rounded full) com efeitos de hover suaves, carrosséis de imagens com transição fade e galerias em formato masonry.
+
+Figuras Representativas e Elementos Gráficos:
+
+Ilustrações Orgânicas: Traços em aquarela ou linhas orgânicas manuais desenhando a folha do cacaueiro, frutos do cacau, coqueiros e ondas do mar.
+
+Texturas visuais: Uso sutil de texturas de papel artesanal, tramas de palha ou madeira natural em planos de fundo secundários.
+
+Fluxo de Uso Base e Interações (Usuários Externos - Privada)
+[Hero Visual Imersivo (Vídeo/Foto)]
+       │
+       ├──► [Navegação Narrativa / Storytelling da Região]
+       │
+       ├──► [Experiências & Hospedagem (Resorts / Gastronomia)]
+       │      │
+       │      └──► Modais de Fotos 360° / Vídeos
+       │
+       └──► [Reserva / Conversão Direta (Widget Flutuante)]
+Passo a Passo da Interação (UI/UX)
+Atração Imersiva (Landing Page):
+
+Hero Section: Vídeo em looping de alta definição de praias e fazendas de cacau com sobreposição do título serifado em dourado/branco.
+
+Barra de Reserva Rápida (Floating Booking Widget): Barra fixada na parte inferior com seletores de datas, número de hóspedes e botão de ação ("Experiência Costa do Cacau").
+
+Exploração de Conteúdo e Experiências:
+
+Rolagem suave (smooth scroll) apresentando blocos no estilo editorial (Foto à esquerda, texto narrativo e botões de ação à direita).
+
+Microinteração: Ao passar o mouse (hover) nos cartões de passeios/resorts, a imagem faz um leve zoom-in e exibe ícones de comodidades (piscina, transfer, spa, degustação de chocolate).
+
+Conversão e Agendamento:
+
+Clique em "Reservar / Conhecer Experiência".
+
+Abertura de modal limpo e elegante sem redirecionar para páginas externas abruptas, mantendo o usuário imerso na atmosfera visual da marca.
+
+3. Matriz Comparativa de UI/UX
+Elemento de UI/UX	Iniciativa Estatal (Pública)	Iniciativa Privada (Resorts / Turismo)
+Conceito Visual	Minimalista, direto, neutro e acessível	Orgânico, praiano, sofisticado e narrativo
+Referência Principal	ConectaSUS / Portais Governamentais	Resorts da Costa do Cacau / Hospitality UX
+Tipografia	Sans-Serif limpa (Inter / Roboto)	Serifada Elegante (Playfair) + Sans (Montserrat)
+Cores Dominantes	Azul Governamental, Verde e Cinza Claro	Terracota, Dourado, Verde Mata e Areia
+Forma dos Botões	Retangulares com cantos levemente suaves (4px)	Arredondados estilo pílula com animações suaves
+Foco da Interação	Encontrar o serviço em até 3 cliques	Conectar emocionalmente e gerar reserva/agendamento
+Tratamento de Imagem	Vetores gráficos, ícones e fotos informativas	Fotografia autoral de alto impacto e vídeos em loop
+4. Próximos Passos na Fase de Prototipagem
+Wireframes de Baixa Fidelidade: Desenhar as estruturas de tela (layouts) dos fluxos descritos utilizando os grids propostos para desktop e mobile (Mobile-First).
+
+Criação do UI Kit / Design System:
+
+Definir a escala tipográfica e os tokens de cores para os ambientes CSS/Figma.
+
+Criar os componentes reutilizáveis (botões, campos de busca, barras de navegação e cards).
+
+Testes de Usabilidade com Protótipo Interativo: Validar o fluxo estatal focado na rapidez de acesso à informação e o fluxo privado focado no tempo de permanência e engajamento visual.
