@@ -1,0 +1,275 @@
+@import "tailwindcss";
+
+/* Diretrizes de design (docs/diretrizes-design.txt), linha híbrida:
+   serviço público = paleta institucional; descoberta = paleta identitária praiana.
+   Vermelho e amarelo de situação seguem as bandeiras de salva-vidas. */
+:root {
+  /* institucional (estatal), com fundo areia off-white a pedido da equipe */
+  --ground: #f6f1e7;
+  --card: #ffffff;
+  --ink: #212529;
+  --ink-2: #495057;
+  --field: #0b4f6c;
+  --field-deep: #083a50;
+  --field-ink: #d6e7ef;
+  --surface: #f1ebe0;
+  --surface-2: #e9e0d1;
+  --line: #e5dccd;
+  --blue: #0b4f6c;
+  --blue-bright: #007791;
+  --ok: #2e7d32;
+  --ok-ink: #1f5e23;
+  --ok-bg: #e8f3e9;
+
+  /* identitária (privada) */
+  --sand: #efe5d4;
+  --sand-2: #e6d9c3;
+  --accent: #e5a93c;
+  --accent-soft: #f8ead0;
+  --cacau: #7b3f00;
+  --mata: #1b4332;
+  --mar: #007791;
+
+  --warn: #e5a93c;
+  --warn-ink: #7a5410;
+  --warn-bg: #fbf1dd;
+  --danger: #c62828;
+  --danger-ink: #a51d1d;
+  --danger-deep: #5c0d08;
+  --danger-bg: #fdecec;
+  --gray: #8d959d;
+
+  --r-sm: 8px;
+  --r-md: 16px;
+  --r-lg: 28px;
+
+  --sombra-1: 0 1px 2px rgba(64, 44, 22, 0.05);
+  --sombra-2: 0 2px 6px rgba(64, 44, 22, 0.06), 0 12px 32px rgba(64, 44, 22, 0.1);
+  --sombra-3: 0 8px 24px rgba(64, 44, 22, 0.14), 0 24px 64px rgba(64, 44, 22, 0.16);
+
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-field: var(--field);
+  --color-field-deep: var(--field-deep);
+  --color-field-ink: var(--field-ink);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-sand: var(--sand);
+  --color-sand-2: var(--sand-2);
+  --color-cacau: var(--cacau);
+  --color-mata: var(--mata);
+  --color-mar: var(--mar);
+  --font-display: var(--font-display-app);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-blue: var(--blue);
+  --color-blue-bright: var(--blue-bright);
+  --color-ok: var(--ok);
+  --color-ok-ink: var(--ok-ink);
+  --color-ok-bg: var(--ok-bg);
+  --color-warn: var(--warn);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-bg: var(--warn-bg);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-deep: var(--danger-deep);
+  --color-danger-bg: var(--danger-bg);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --shadow-1: var(--sombra-1);
+  --shadow-2: var(--sombra-2);
+  --shadow-3: var(--sombra-3);
+  --font-sans: var(--font-app);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-app), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  font-feature-settings: "ss01";
+}
+
+/* Fundo "mar": degradê da água rasa ao azul, com ondas finas e grão leve.
+   Fica num pseudo-elemento fixo (background-attachment: fixed falha no iOS). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.25 0 0 0 0 0.33 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='48' viewBox='0 0 240 48'%3E%3Cpath d='M0 24c20-10 40-10 60 0s40 10 60 0 40-10 60 0 40 10 60 0' fill='none' stroke='%23ffffff' stroke-opacity='.35' stroke-width='1.2'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #f6f1e7 0%, #e4f2f1 22%, #c9e8ec 55%, #a8d8e2 82%, #8ccbd9 100%);
+}
+body {
+  background: transparent;
+}
+
+/* Tela do chat isolada como app: nada além da lista de mensagens rola, sem efeito elástico
+   e sem o mar aparecendo atrás (o fundo vira areia). */
+html.pagina-chat,
+html.pagina-chat body {
+  height: var(--altura-visivel, 100%);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+html.pagina-chat body {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+html.pagina-chat body::before {
+  background: var(--sand);
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+button {
+  cursor: pointer;
+}
+
+/* resposta ao toque */
+.toque {
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.toque:active {
+  transform: scale(0.97);
+}
+
+:focus-visible {
+  outline: 3px solid var(--blue-bright);
+  outline-offset: 2px;
+}
+
+.sem-barra {
+  scrollbar-width: none;
+}
+.sem-barra::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* entrada em cascata dos filhos */
+.cascata > * {
+  animation: sobe-suave 520ms var(--ease-out) both;
+}
+.cascata > *:nth-child(2) { animation-delay: 60ms; }
+.cascata > *:nth-child(3) { animation-delay: 120ms; }
+.cascata > *:nth-child(4) { animation-delay: 180ms; }
+.cascata > *:nth-child(5) { animation-delay: 240ms; }
+.cascata > *:nth-child(6) { animation-delay: 300ms; }
+
+@keyframes sobe-suave {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes entra-de-cima {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.98);
+  }
+}
+@keyframes aparece {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes esvazia {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@keyframes pulso {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes zoom-lento {
+  from { transform: scale(1.12); }
+  to { transform: scale(1); }
+}
+.entra-de-cima {
+  animation: entra-de-cima 420ms var(--ease-out) both;
+}
+.aparece {
+  animation: aparece 220ms var(--ease-out) both;
+}
+.pulso::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  animation: pulso 1.8s var(--ease-out) infinite;
+}
+
+/* folhas (dialog nativo) */
+@keyframes sobe {
+  from { transform: translateY(100%); }
+}
+@keyframes da-direita {
+  from { transform: translateX(100%); }
+}
+@keyframes escurece {
+  from { opacity: 0; }
+}
+.folha[open] .folha-painel {
+  animation: sobe 420ms var(--ease-sheet) both;
+}
+.folha[open]::backdrop {
+  animation: escurece 260ms ease both;
+}
+@media (min-width: 1024px) {
+  .folha[open] .folha-painel {
+    animation-name: da-direita;
+  }
+}
+.folha {
+  overflow: visible;
+}
+
+/* o mar da linha da costa vai e volta devagar: a única animação contínua da tela */
+@keyframes mare {
+  from { transform: translateX(0); }
+  to { transform: translateX(-37.5%); }
+}
+.mar {
+  animation: mare 14s var(--ease-in-out) infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+.leaflet-container {
+  font-family: var(--font-app), system-ui, sans-serif;
+  background: var(--surface);
+}

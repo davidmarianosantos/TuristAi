@@ -1,0 +1,5 @@
+# mesmas quebras de linha nos dois PCs (evita diffs falsos entre Windows e outros sistemas)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

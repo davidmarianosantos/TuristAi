@@ -1,0 +1,16 @@
+# Ferramentas locais de cada pessoa (IA, skills, rascunhos de design)
+.claude/*
+!.claude/launch.json
+.impeccable/
+.superpowers/
+.taste-skill/
+startup-idea-validator/
+startup-skills/
+
+# Next.js / Node (a pasta web/ tem o seu próprio .gitignore também)
+node_modules/
+.next/
+.env*
+*.log
+.DS_Store
+Thumbs.db
