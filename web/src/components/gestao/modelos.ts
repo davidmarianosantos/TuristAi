@@ -63,7 +63,7 @@ export const MODELOS_ALERTA: ModeloAlerta[] = [
   },
 ];
 
-/** Quem assina o Alerta. São as fontes e os parceiros que o CLAUDE.md §5 e §7 já nomeiam. */
+/** Quem assina o Alerta. São as fontes de dados e os parceiros previstos no produto. */
 export type OrgaoEmissor = { id: string; nome: (municipio: Municipio) => string };
 
 export const ORGAOS_EMISSORES: OrgaoEmissor[] = [

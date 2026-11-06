@@ -1,12 +1,3 @@
-# Ferramentas locais de cada pessoa (IA, skills, rascunhos de design)
-.claude/*
-!.claude/launch.json
-.impeccable/
-.superpowers/
-.taste-skill/
-startup-idea-validator/
-startup-skills/
-
 # Next.js / Node (a pasta web/ tem o seu próprio .gitignore também)
 node_modules/
 .next/
@@ -14,9 +5,3 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
-
-# Skills locais de cada pessoa (instaladas por ferramenta, não são do projeto)
-.agents/
-
-# Gerado pelo next dev
-web/AGENTS.md
