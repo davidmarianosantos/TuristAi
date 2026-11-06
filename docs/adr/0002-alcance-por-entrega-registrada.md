@@ -1,10 +1,10 @@
 # Alcance medido por Entrega registrada pela tela do turista, só com dados reais
 
-O indicador de destaque do pitch (CLAUDE.md §8) precisa de um registro de quem recebeu cada alerta, e o repositório não sabe isso sozinho: quem tem a Sessão e a lista de alertas ao mesmo tempo é a tela do turista. Decidimos acrescentar ao `Repositorio` um método novo, `registrarPresenca`, que grava a Sessão e as Entregas no mesmo estado em localStorage onde já vivem alertas e chamados, e pedir ao David duas chamadas a ele na `TelaTurista` (ao carregar e quando chega alerta). O painel calcula o Alcance só com o que foi gravado: nada de histórico semeado.
+O indicador de destaque do pitch, o alcance, precisa de um registro de quem recebeu cada alerta, e o repositório não sabe isso sozinho: quem tem a Sessão e a lista de alertas ao mesmo tempo é a tela do turista. Decidimos acrescentar ao `Repositorio` um método novo, `registrarPresenca`, que grava a Sessão e as Entregas no mesmo estado em localStorage onde já vivem alertas e chamados, e pedir ao David duas chamadas a ele na `TelaTurista` (ao carregar e quando chega alerta). O painel calcula o Alcance só com o que foi gravado: nada de histórico semeado.
 
 ## Considered Options
 
-- **Gravar por dentro do mock, sem tocar na tela do turista** (guardar a "sessão desta aba" em `criarSessao` e registrar a Entrega quando `aoMudarAlertas` dispara): rejeitado porque muda o comportamento de métodos existentes, o que o AGENTS.md §2 proíbe, e depende da ordem de execução do `Promise.all`.
+- **Gravar por dentro do mock, sem tocar na tela do turista** (guardar a "sessão desta aba" em `criarSessao` e registrar a Entrega quando `aoMudarAlertas` dispara): rejeitado porque muda o comportamento de métodos existentes, o que a regra de só acrescentar nos arquivos compartilhados proíbe, e depende da ordem de execução do `Promise.all`.
 - **Estimar pelas sessões abertas, sem registrar Entrega**: rejeitado porque o número seria inventado.
 - **Semear um histórico ("1.240 turistas esta semana")**: rejeitado. O painel fica com números pequenos, mas a banca vê o número mudar ao vivo, e nenhum dado é inventado.
 

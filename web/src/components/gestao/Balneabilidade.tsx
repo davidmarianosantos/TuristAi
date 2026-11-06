@@ -15,7 +15,7 @@ const SITUACAO: Record<Situacao, { rotulo: string; cor: string }> = {
 const PESO: Record<Situacao, number> = { impropria: 0, precaucao: 1, propria: 2, sem_dados: 3 };
 
 /**
- * Boletim do dia, praia a praia, com a fonte de cada leitura (CLAUDE.md §5).
+ * Boletim do dia, praia a praia, com a fonte de cada leitura.
  * Só lê o repositório: é o mesmo dado que o turista vê no cartão da praia.
  */
 export function Balneabilidade({ praias, nomeEscopo }: { praias: PraiaDaRegiao[]; nomeEscopo: string }) {
